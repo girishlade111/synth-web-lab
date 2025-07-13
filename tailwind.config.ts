@@ -61,6 +61,39 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// IDE-specific colors
+				editor: {
+					background: 'hsl(var(--editor-background))',
+					foreground: 'hsl(var(--editor-foreground))',
+					border: 'hsl(var(--editor-border))'
+				},
+				terminal: {
+					background: 'hsl(var(--terminal-background))',
+					foreground: 'hsl(var(--terminal-foreground))'
+				},
+				console: {
+					background: 'hsl(var(--console-background))',
+					foreground: 'hsl(var(--console-foreground))'
+				},
+				preview: {
+					background: 'hsl(var(--preview-background))'
+				},
+				prompt: {
+					background: 'hsl(var(--prompt-background))',
+					foreground: 'hsl(var(--prompt-foreground))'
+				},
+				success: {
+					DEFAULT: 'hsl(var(--success))',
+					foreground: 'hsl(var(--success-foreground))'
+				},
+				warning: {
+					DEFAULT: 'hsl(var(--warning))',
+					foreground: 'hsl(var(--warning-foreground))'
+				},
+				info: {
+					DEFAULT: 'hsl(var(--info))',
+					foreground: 'hsl(var(--info-foreground))'
 				}
 			},
 			borderRadius: {
