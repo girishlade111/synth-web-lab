@@ -69,7 +69,13 @@ export const AIWebIDE: React.FC = () => {
 
       if (response.success && response.content) {
         setCode(response.content);
-        setActiveTab('preview'); // Switch to preview to see results
+        
+        // Auto-switch to live preview after successful generation
+        setTimeout(() => {
+          setActiveTab('preview');
+          console.success('Code generated successfully! Switching to live preview...');
+        }, 500);
+        
         console.success('Code generated successfully!');
         console.log(`Generated ${response.content.length} characters of code`);
       } else {
@@ -104,6 +110,10 @@ export const AIWebIDE: React.FC = () => {
         return `Unknown command: ${command}. Type 'help' for available commands.`;
     }
   }, [code, isDarkMode]);
+
+  const handleTerminalQuickCommand = useCallback(async (command: string) => {
+    await handleTerminalCommand(command);
+  }, [handleTerminalCommand]);
 
   const handleExport = async () => {
     console.info('Exporting website...');
@@ -229,8 +239,10 @@ export const AIWebIDE: React.FC = () => {
                   <Panel defaultSize={50} minSize={25}>
                     <Terminal
                       onCommand={handleTerminalCommand}
+                      onQuickCommand={handleTerminalQuickCommand}
                       isMinimized={isTerminalMinimized}
                       onToggleMinimize={() => setIsTerminalMinimized(!isTerminalMinimized)}
+                      isActive={isGenerating}
                       className="h-full"
                     />
                   </Panel>
@@ -244,6 +256,7 @@ export const AIWebIDE: React.FC = () => {
                       onClear={console.clear}
                       isMinimized={isConsoleMinimized}
                       onToggleMinimize={() => setIsConsoleMinimized(!isConsoleMinimized)}
+                      isProcessing={isGenerating}
                       className="h-full"
                     />
                   </Panel>

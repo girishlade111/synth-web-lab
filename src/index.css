@@ -193,6 +193,48 @@
     background: hsl(var(--primary));
   }
 
+  /* Enhanced animations for IDE components */
+  .terminal-container,
+  .console-container {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .terminal-container.minimized,
+  .console-container.minimized {
+    height: 48px;
+    overflow: hidden;
+  }
+
+  /* Status indicator animations */
+  @keyframes pulse-dot {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(0.95);
+    }
+  }
+
+  .status-indicator {
+    animation: pulse-dot 2s infinite;
+  }
+
+  /* Quick access button animations */
+  .quick-button {
+    transition: opacity 0.2s ease, transform 0.1s ease;
+  }
+
+  .quick-button:hover {
+    transform: scale(1.05);
+  }
+
+  /* Panel content fade in */
+  .panel-content {
+    animation: fade-in 0.3s ease-out;
+  }
+
   /* Animations */
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }

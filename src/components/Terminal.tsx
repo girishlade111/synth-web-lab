@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ChevronDown, ChevronUp, Terminal as TerminalIcon, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Terminal as TerminalIcon, Trash2, Play, Download, Zap, Activity } from 'lucide-react';
 
 interface TerminalCommand {
   command: string;
@@ -15,13 +15,17 @@ interface TerminalProps {
   className?: string;
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
+  isActive?: boolean;
+  onQuickCommand?: (command: string) => void;
 }
 
 export const Terminal: React.FC<TerminalProps> = ({
   onCommand,
   className = '',
   isMinimized = false,
-  onToggleMinimize
+  onToggleMinimize,
+  isActive = false,
+  onQuickCommand
 }) => {
   const [history, setHistory] = useState<TerminalCommand[]>([
     {
@@ -175,40 +179,88 @@ export const Terminal: React.FC<TerminalProps> = ({
     });
   };
 
+  const quickCommands = [
+    { name: 'help', icon: <TerminalIcon className="h-3 w-3" />, command: 'help' },
+    { name: 'clear', icon: <Trash2 className="h-3 w-3" />, command: 'clear' },
+    { name: 'version', icon: <Activity className="h-3 w-3" />, command: 'version' },
+    { name: 'models', icon: <Zap className="h-3 w-3" />, command: 'models' }
+  ];
+
   if (isMinimized) {
     return (
-      <div className={`terminal-container ${className}`}>
-        <div className="flex items-center justify-between p-2 border-b border-border">
+      <div className={`terminal-container ${className} transition-all duration-300 ease-in-out`}>
+        <div className="flex items-center justify-between p-2 bg-card border-b border-border hover:bg-muted/50 cursor-pointer transition-colors duration-200">
           <div className="flex items-center space-x-2">
-            <TerminalIcon className="h-4 w-4" />
+            <TerminalIcon className={`h-4 w-4 ${isActive ? 'text-primary animate-pulse' : 'text-muted-foreground'}`} />
             <span className="text-sm font-medium">Terminal</span>
+            {isActive && (
+              <div className="flex items-center space-x-1">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                <span className="text-xs text-primary">Active</span>
+              </div>
+            )}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onToggleMinimize}
-            className="h-6 w-6 p-0"
-          >
-            <ChevronUp className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center space-x-1">
+            {/* Quick command buttons */}
+            {quickCommands.map((cmd) => (
+              <Button
+                key={cmd.name}
+                variant="ghost"
+                size="sm"
+                onClick={() => onQuickCommand?.(cmd.command)}
+                className="h-6 w-6 p-0 opacity-60 hover:opacity-100"
+                title={cmd.name}
+              >
+                {cmd.icon}
+              </Button>
+            ))}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onToggleMinimize}
+              className="h-6 w-6 p-0"
+            >
+              <ChevronUp className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`terminal-container ${className} flex flex-col h-full`}>
-      <div className="flex items-center justify-between p-2 border-b border-border">
+    <div className={`terminal-container ${className} flex flex-col h-full transition-all duration-300 ease-in-out animate-fade-in`}>
+      <div className="flex items-center justify-between p-2 bg-card border-b border-border">
         <div className="flex items-center space-x-2">
-          <TerminalIcon className="h-4 w-4" />
+          <TerminalIcon className={`h-4 w-4 ${isActive ? 'text-primary animate-pulse' : 'text-foreground'}`} />
           <span className="text-sm font-medium">Terminal</span>
+          {isActive && (
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+              <span className="text-xs text-primary">Running</span>
+            </div>
+          )}
         </div>
         <div className="flex items-center space-x-1">
+          {/* Quick command buttons */}
+          {quickCommands.map((cmd) => (
+            <Button
+              key={cmd.name}
+              variant="ghost"
+              size="sm"
+              onClick={() => onQuickCommand?.(cmd.command)}
+              className="h-6 w-6 p-0 opacity-60 hover:opacity-100 transition-opacity duration-200"
+              title={cmd.name}
+            >
+              {cmd.icon}
+            </Button>
+          ))}
           <Button
             variant="ghost"
             size="sm"
             onClick={clearHistory}
             className="h-6 w-6 p-0"
+            title="Clear terminal"
           >
             <Trash2 className="h-3 w-3" />
           </Button>
@@ -218,6 +270,7 @@ export const Terminal: React.FC<TerminalProps> = ({
               size="sm"
               onClick={onToggleMinimize}
               className="h-6 w-6 p-0"
+              title="Minimize terminal"
             >
               <ChevronDown className="h-4 w-4" />
             </Button>

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, Bug, Trash2, Info, AlertTriangle, XCircle, CheckCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Bug, Trash2, Info, AlertTriangle, XCircle, CheckCircle, Activity, Filter } from 'lucide-react';
 
 export interface ConsoleMessage {
   id: string;
@@ -16,6 +16,7 @@ interface ConsoleProps {
   className?: string;
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
+  isProcessing?: boolean;
 }
 
 export const Console: React.FC<ConsoleProps> = ({
@@ -23,7 +24,8 @@ export const Console: React.FC<ConsoleProps> = ({
   onClear,
   className = '',
   isMinimized = false,
-  onToggleMinimize
+  onToggleMinimize,
+  isProcessing = false
 }) => {
   const [filter, setFilter] = useState<string>('all');
   const consoleRef = useRef<HTMLDivElement>(null);
@@ -91,51 +93,118 @@ export const Console: React.FC<ConsoleProps> = ({
     success: messages.filter(m => m.type === 'success').length,
   };
 
+  const quickFilterButtons = [
+    { name: 'All', filter: 'all', icon: <Bug className="h-3 w-3" /> },
+    { name: 'Errors', filter: 'error', icon: <XCircle className="h-3 w-3" /> },
+    { name: 'Warnings', filter: 'warn', icon: <AlertTriangle className="h-3 w-3" /> },
+    { name: 'Info', filter: 'info', icon: <Info className="h-3 w-3" /> }
+  ];
+
+  const hasRecentErrors = messages.filter(m => m.type === 'error').length > 0;
+  const hasRecentWarnings = messages.filter(m => m.type === 'warn').length > 0;
+
   if (isMinimized) {
     return (
-      <div className={`console-container ${className}`}>
-        <div className="flex items-center justify-between p-2 border-b border-border">
+      <div className={`console-container ${className} transition-all duration-300 ease-in-out`}>
+        <div className="flex items-center justify-between p-2 bg-card border-b border-border hover:bg-muted/50 cursor-pointer transition-colors duration-200">
           <div className="flex items-center space-x-2">
-            <Bug className="h-4 w-4" />
+            <Bug className={`h-4 w-4 ${isProcessing ? 'text-primary animate-pulse' : 'text-muted-foreground'}`} />
             <span className="text-sm font-medium">Console</span>
             {messages.length > 0 && (
-              <span className="text-xs bg-muted px-2 py-1 rounded">
-                {messages.length}
-              </span>
+              <div className="flex items-center space-x-1">
+                <span className="text-xs bg-muted px-2 py-1 rounded">
+                  {messages.length}
+                </span>
+                {hasRecentErrors && (
+                  <div className="w-2 h-2 bg-destructive rounded-full animate-pulse"></div>
+                )}
+                {hasRecentWarnings && (
+                  <div className="w-2 h-2 bg-warning rounded-full animate-pulse"></div>
+                )}
+              </div>
+            )}
+            {isProcessing && (
+              <div className="flex items-center space-x-1">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                <span className="text-xs text-primary">Processing</span>
+              </div>
             )}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onToggleMinimize}
-            className="h-6 w-6 p-0"
-          >
-            <ChevronUp className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center space-x-1">
+            {/* Quick filter buttons */}
+            {quickFilterButtons.slice(1, 4).map((btn) => (
+              <Button
+                key={btn.filter}
+                variant="ghost"
+                size="sm"
+                onClick={() => setFilter(btn.filter)}
+                className="h-6 w-6 p-0 opacity-60 hover:opacity-100"
+                title={btn.name}
+              >
+                {btn.icon}
+              </Button>
+            ))}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onToggleMinimize}
+              className="h-6 w-6 p-0"
+            >
+              <ChevronUp className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`console-container ${className} flex flex-col h-full`}>
-      <div className="flex items-center justify-between p-2 border-b border-border">
+    <div className={`console-container ${className} flex flex-col h-full transition-all duration-300 ease-in-out animate-fade-in`}>
+      <div className="flex items-center justify-between p-2 bg-card border-b border-border">
         <div className="flex items-center space-x-2">
-          <Bug className="h-4 w-4" />
+          <Bug className={`h-4 w-4 ${isProcessing ? 'text-primary animate-pulse' : 'text-foreground'}`} />
           <span className="text-sm font-medium">Console</span>
           {messages.length > 0 && (
-            <span className="text-xs bg-muted px-2 py-1 rounded">
-              {filteredMessages.length} of {messages.length}
-            </span>
+            <div className="flex items-center space-x-1">
+              <span className="text-xs bg-muted px-2 py-1 rounded">
+                {filteredMessages.length} of {messages.length}
+              </span>
+              {hasRecentErrors && (
+                <div className="w-2 h-2 bg-destructive rounded-full animate-pulse"></div>
+              )}
+              {hasRecentWarnings && (
+                <div className="w-2 h-2 bg-warning rounded-full animate-pulse"></div>
+              )}
+            </div>
+          )}
+          {isProcessing && (
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+              <span className="text-xs text-primary">Processing</span>
+            </div>
           )}
         </div>
         <div className="flex items-center space-x-1">
+          {/* Quick filter buttons */}
+          {quickFilterButtons.map((btn) => (
+            <Button
+              key={btn.filter}
+              variant={filter === btn.filter ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setFilter(btn.filter)}
+              className="h-6 w-6 p-0 opacity-60 hover:opacity-100 transition-opacity duration-200"
+              title={btn.name}
+            >
+              {btn.icon}
+            </Button>
+          ))}
           {onClear && (
             <Button
               variant="ghost"
               size="sm"
               onClick={onClear}
               className="h-6 w-6 p-0"
+              title="Clear console"
             >
               <Trash2 className="h-3 w-3" />
             </Button>
@@ -146,6 +215,7 @@ export const Console: React.FC<ConsoleProps> = ({
               size="sm"
               onClick={onToggleMinimize}
               className="h-6 w-6 p-0"
+              title="Minimize console"
             >
               <ChevronDown className="h-4 w-4" />
             </Button>
