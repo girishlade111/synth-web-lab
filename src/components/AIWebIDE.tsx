@@ -168,102 +168,104 @@ export const AIWebIDE: React.FC = () => {
       </div>
 
       {/* Main Layout */}
-      <div className="h-[calc(100vh-3rem)] flex">
-        {/* Left Side - 4 Quadrant Layout */}
-        <div className="flex-1">
-          <PanelGroup direction="vertical">
-            {/* Top Half */}
-            <Panel defaultSize={60} minSize={30}>
-              <PanelGroup direction="horizontal">
-                {/* Live Preview */}
-                <Panel defaultSize={50} minSize={30}>
-                  <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-                    <div className="bg-card border-b border-border px-4">
-                      <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="preview" className="flex items-center space-x-2">
-                          <Eye className="h-4 w-4" />
-                          <span>Live Preview</span>
-                        </TabsTrigger>
-                        <TabsTrigger value="code" className="flex items-center space-x-2">
-                          <Code className="h-4 w-4" />
-                          <span>Code Editor</span>
-                        </TabsTrigger>
-                      </TabsList>
-                    </div>
-                    
-                    <div className="flex-1">
-                      <TabsContent value="preview" className="h-full m-0">
-                        <LivePreview code={code} />
-                      </TabsContent>
-                      <TabsContent value="code" className="h-full m-0">
-                        <MonacoEditor
-                          value={code}
-                          onChange={setCode}
-                          theme={isDarkMode ? 'vs-dark' : 'vs-light'}
-                        />
-                      </TabsContent>
-                    </div>
-                  </Tabs>
-                </Panel>
-                
-                <PanelResizeHandle className="w-2 bg-border hover:bg-primary/50 transition-colors" />
-                
-                {/* Code Editor (when preview is separate) - Hidden when using tabs */}
-                <Panel defaultSize={50} minSize={30} className="hidden">
-                  <MonacoEditor
-                    value={code}
-                    onChange={setCode}
-                    theme={isDarkMode ? 'vs-dark' : 'vs-light'}
-                  />
-                </Panel>
-              </PanelGroup>
-            </Panel>
-            
-            <PanelResizeHandle className="h-2 bg-border hover:bg-primary/50 transition-colors" />
-            
-            {/* Bottom Half */}
-            <Panel defaultSize={40} minSize={20}>
-              <PanelGroup direction="horizontal">
-                {/* Terminal */}
-                <Panel defaultSize={50} minSize={25}>
-                  <Terminal
-                    onCommand={handleTerminalCommand}
-                    isMinimized={isTerminalMinimized}
-                    onToggleMinimize={() => setIsTerminalMinimized(!isTerminalMinimized)}
-                    className="h-full"
-                  />
-                </Panel>
-                
-                <PanelResizeHandle className="w-2 bg-border hover:bg-primary/50 transition-colors" />
-                
-                {/* Console */}
-                <Panel defaultSize={50} minSize={25}>
-                  <Console
-                    messages={console.messages}
-                    onClear={console.clear}
-                    isMinimized={isConsoleMinimized}
-                    onToggleMinimize={() => setIsConsoleMinimized(!isConsoleMinimized)}
-                    className="h-full"
-                  />
-                </Panel>
-              </PanelGroup>
-            </Panel>
-          </PanelGroup>
-        </div>
-        
-        <PanelResizeHandle className="w-2 bg-border hover:bg-primary/50 transition-colors" />
-        
-        {/* Right Side - Prompt Panel */}
-        <Panel defaultSize={25} minSize={20} maxSize={40}>
-          <PromptPanel
-            onGenerate={handleGenerate}
-            isGenerating={isGenerating}
-            progress={generationProgress}
-            isMinimized={isPromptMinimized}
-            onToggleMinimize={() => setIsPromptMinimized(!isPromptMinimized)}
-            className="h-full"
-          />
-        </Panel>
+      <div className="h-[calc(100vh-3rem)]">
+        <PanelGroup direction="horizontal">
+          {/* Left Side - 4 Quadrant Layout */}
+          <Panel defaultSize={75} minSize={60}>
+            <PanelGroup direction="vertical">
+              {/* Top Half */}
+              <Panel defaultSize={60} minSize={30}>
+                <PanelGroup direction="horizontal">
+                  {/* Live Preview */}
+                  <Panel defaultSize={50} minSize={30}>
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+                      <div className="bg-card border-b border-border px-4">
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="preview" className="flex items-center space-x-2">
+                            <Eye className="h-4 w-4" />
+                            <span>Live Preview</span>
+                          </TabsTrigger>
+                          <TabsTrigger value="code" className="flex items-center space-x-2">
+                            <Code className="h-4 w-4" />
+                            <span>Code Editor</span>
+                          </TabsTrigger>
+                        </TabsList>
+                      </div>
+                      
+                      <div className="flex-1">
+                        <TabsContent value="preview" className="h-full m-0">
+                          <LivePreview code={code} />
+                        </TabsContent>
+                        <TabsContent value="code" className="h-full m-0">
+                          <MonacoEditor
+                            value={code}
+                            onChange={setCode}
+                            theme={isDarkMode ? 'vs-dark' : 'vs-light'}
+                          />
+                        </TabsContent>
+                      </div>
+                    </Tabs>
+                  </Panel>
+                  
+                  <PanelResizeHandle className="w-2 bg-border hover:bg-primary/50 transition-colors" />
+                  
+                  {/* Code Editor (when preview is separate) - Hidden when using tabs */}
+                  <Panel defaultSize={50} minSize={30} className="hidden">
+                    <MonacoEditor
+                      value={code}
+                      onChange={setCode}
+                      theme={isDarkMode ? 'vs-dark' : 'vs-light'}
+                    />
+                  </Panel>
+                </PanelGroup>
+              </Panel>
+              
+              <PanelResizeHandle className="h-2 bg-border hover:bg-primary/50 transition-colors" />
+              
+              {/* Bottom Half */}
+              <Panel defaultSize={40} minSize={20}>
+                <PanelGroup direction="horizontal">
+                  {/* Terminal */}
+                  <Panel defaultSize={50} minSize={25}>
+                    <Terminal
+                      onCommand={handleTerminalCommand}
+                      isMinimized={isTerminalMinimized}
+                      onToggleMinimize={() => setIsTerminalMinimized(!isTerminalMinimized)}
+                      className="h-full"
+                    />
+                  </Panel>
+                  
+                  <PanelResizeHandle className="w-2 bg-border hover:bg-primary/50 transition-colors" />
+                  
+                  {/* Console */}
+                  <Panel defaultSize={50} minSize={25}>
+                    <Console
+                      messages={console.messages}
+                      onClear={console.clear}
+                      isMinimized={isConsoleMinimized}
+                      onToggleMinimize={() => setIsConsoleMinimized(!isConsoleMinimized)}
+                      className="h-full"
+                    />
+                  </Panel>
+                </PanelGroup>
+              </Panel>
+            </PanelGroup>
+          </Panel>
+          
+          <PanelResizeHandle className="w-2 bg-border hover:bg-primary/50 transition-colors" />
+          
+          {/* Right Side - Prompt Panel */}
+          <Panel defaultSize={25} minSize={20} maxSize={40}>
+            <PromptPanel
+              onGenerate={handleGenerate}
+              isGenerating={isGenerating}
+              progress={generationProgress}
+              isMinimized={isPromptMinimized}
+              onToggleMinimize={() => setIsPromptMinimized(!isPromptMinimized)}
+              className="h-full"
+            />
+          </Panel>
+        </PanelGroup>
       </div>
     </div>
   );
