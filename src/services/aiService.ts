@@ -187,7 +187,7 @@ class AIService {
       headers: {
         'Authorization': `Bearer ${this.OPENROUTER_API_KEY}`,
         'HTTP-Referer': window.location.origin,
-        'X-Title': 'AI Web IDE',
+        'X-Title': 'Girish IDE',
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({

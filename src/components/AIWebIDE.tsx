@@ -21,6 +21,7 @@ import { PromptPanel } from './PromptPanel';
 import { ExportUtils } from './ExportUtils';
 import { aiService, AIModel, GenerationProgress } from '@/services/aiService';
 import { toast } from '@/hooks/use-toast';
+import { useCodeVersions } from '@/hooks/useCodeVersions';
 
 export const AIWebIDE: React.FC = () => {
   // Theme state
@@ -41,6 +42,14 @@ export const AIWebIDE: React.FC = () => {
   
   // Console hook
   const console = useConsole();
+  
+  // Code versions hook
+  const {
+    versions: codeVersions,
+    currentVersionId,
+    addVersion,
+    switchToVersion
+  } = useCodeVersions();
 
   // Apply theme
   useEffect(() => {
@@ -70,6 +79,9 @@ export const AIWebIDE: React.FC = () => {
       if (response.success && response.content) {
         setCode(response.content);
         
+        // Add to version history
+        addVersion(response.content, prompt, model.name);
+        
         // Auto-switch to live preview after successful generation
         setTimeout(() => {
           setActiveTab('preview');
@@ -89,7 +101,7 @@ export const AIWebIDE: React.FC = () => {
       setIsGenerating(false);
       setGenerationProgress(undefined);
     }
-  }, [console]);
+  }, [console, addVersion]);
 
   const handleTerminalCommand = useCallback(async (command: string): Promise<string> => {
     console.log(`Terminal command: ${command}`);
@@ -115,6 +127,18 @@ export const AIWebIDE: React.FC = () => {
     await handleTerminalCommand(command);
   }, [handleTerminalCommand]);
 
+  const handleSwitchVersion = useCallback((versionId: string) => {
+    const version = switchToVersion(versionId);
+    if (version) {
+      setCode(version.code);
+      console.info(`Switched to version: ${version.title}`);
+      toast({
+        title: "Version switched",
+        description: `Now viewing: ${version.title}`,
+      });
+    }
+  }, [switchToVersion, console]);
+
   const handleExport = async () => {
     console.info('Exporting website...');
     await ExportUtils.exportAsZip(code, 'ai-generated-website');
@@ -135,7 +159,7 @@ export const AIWebIDE: React.FC = () => {
       {/* Top Bar */}
       <div className="h-12 bg-card border-b border-border flex items-center justify-between px-4">
         <div className="flex items-center space-x-4">
-          <h1 className="text-lg font-bold text-primary">AI Web IDE</h1>
+          <h1 className="text-lg font-bold text-primary">Girish IDE</h1>
           <div className="flex items-center space-x-2">
             <Button
               variant="ghost"
@@ -275,6 +299,9 @@ export const AIWebIDE: React.FC = () => {
               progress={generationProgress}
               isMinimized={isPromptMinimized}
               onToggleMinimize={() => setIsPromptMinimized(!isPromptMinimized)}
+              codeVersions={codeVersions}
+              currentVersionId={currentVersionId}
+              onSwitchVersion={handleSwitchVersion}
               className="h-full"
             />
           </Panel>

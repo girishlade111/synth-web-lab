@@ -16,10 +16,14 @@ import {
   Clock,
   Zap,
   Brain,
-  Cpu
+  Cpu,
+  FileText,
+  GitBranch,
+  ArrowRight
 } from 'lucide-react';
 import { AI_MODELS, AIModel, GenerationProgress } from '@/services/aiService';
 import { toast } from '@/hooks/use-toast';
+import { CodeVersion } from '@/hooks/useCodeVersions';
 
 interface PromptHistoryItem {
   id: string;
@@ -37,6 +41,9 @@ interface PromptPanelProps {
   className?: string;
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
+  codeVersions?: CodeVersion[];
+  currentVersionId?: string | null;
+  onSwitchVersion?: (versionId: string) => void;
 }
 
 export const PromptPanel: React.FC<PromptPanelProps> = ({
@@ -45,12 +52,16 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
   progress,
   className = '',
   isMinimized = false,
-  onToggleMinimize
+  onToggleMinimize,
+  codeVersions = [],
+  currentVersionId,
+  onSwitchVersion
 }) => {
   const [prompt, setPrompt] = useState('');
   const [selectedModel, setSelectedModel] = useState<AIModel>(AI_MODELS[0]);
   const [history, setHistory] = useState<PromptHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleGenerate = async () => {
@@ -164,8 +175,18 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
           <Button
             variant="ghost"
             size="sm"
+            onClick={() => setShowVersions(!showVersions)}
+            className="h-8 px-2"
+            title="Code Versions"
+          >
+            <GitBranch className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setShowHistory(!showHistory)}
             className="h-8 px-2"
+            title="Prompt History"
           >
             <History className="h-4 w-4" />
           </Button>
@@ -278,6 +299,66 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
             </Button>
           )}
         </div>
+
+        {/* Code Versions */}
+        {showVersions && (
+          <>
+            <Separator />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Code Versions</span>
+                <Badge variant="secondary">{codeVersions.length}</Badge>
+              </div>
+              
+              <div className="max-h-60 overflow-y-auto space-y-2 ide-scrollbar">
+                {codeVersions.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-4">
+                    <FileText className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No code versions yet</p>
+                  </div>
+                ) : (
+                  codeVersions.map((version) => (
+                    <Card 
+                      key={version.id} 
+                      className={`cursor-pointer transition-colors ${
+                        currentVersionId === version.id 
+                          ? 'bg-primary/10 border-primary/30' 
+                          : 'hover:bg-accent/50'
+                      }`}
+                      onClick={() => onSwitchVersion?.(version.id)}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-start justify-between space-x-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <FileText className="h-3 w-3" />
+                              <p className="text-sm font-medium truncate">{version.title}</p>
+                              {currentVersionId === version.id && (
+                                <Badge variant="default" className="text-xs">Current</Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate mb-1">
+                              {version.prompt}
+                            </p>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-xs text-muted-foreground">
+                                {version.model}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {version.timestamp.toLocaleTimeString()}
+                              </span>
+                            </div>
+                          </div>
+                          <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Prompt History */}
         {showHistory && (
