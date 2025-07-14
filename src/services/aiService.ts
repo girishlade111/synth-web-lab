@@ -79,44 +79,59 @@ class AIService {
 
     const enhancedPrompt = this.enhancePromptForWebDev(prompt);
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model.id}:generateContent?key=${this.GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text: enhancedPrompt }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 8192,
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model.id}:generateContent?key=${this.GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: enhancedPrompt }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 8192,
+          }
+        })
+      });
+
+      onProgress?.({ status: 'generating', progress: 75, message: 'Processing response...' });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (response.status === 503) {
+          throw new Error('Gemini API is temporarily overloaded. Please try again in a few moments.');
         }
-      })
-    });
+        throw new Error(`Gemini API error (${response.status}): ${errorData.error?.message || response.statusText}`);
+      }
 
-    onProgress?.({ status: 'generating', progress: 75, message: 'Processing response...' });
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(`Gemini API error: ${data.error.message}`);
+      }
 
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.statusText}`);
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!content) {
+        throw new Error('No content received from Gemini API');
+      }
+
+      onProgress?.({ status: 'complete', progress: 100, message: 'Generation complete!' });
+
+      return {
+        success: true,
+        content: this.extractCodeFromResponse(content),
+        model: model.id
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown Gemini API error';
+      onProgress?.({ status: 'error', message: errorMessage });
+      throw error;
     }
-
-    const data = await response.json();
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!content) {
-      throw new Error('No content received from Gemini');
-    }
-
-    onProgress?.({ status: 'complete', progress: 100, message: 'Generation complete!' });
-
-    return {
-      success: true,
-      content: this.extractCodeFromResponse(content),
-      model: model.id
-    };
   }
 
   private async callDeepSeek(
@@ -203,21 +218,25 @@ class AIService {
           }
         ],
         temperature: 0.7,
-        max_tokens: 8192
+        max_tokens: 8192,
+        stream: false
       })
     });
 
     onProgress?.({ status: 'generating', progress: 75, message: 'Processing response...' });
 
     if (!response.ok) {
-      throw new Error(`OpenRouter API error: ${response.statusText}`);
+      const errorData = await response.json();
+      throw new Error(`OpenRouter API error: ${response.statusText} - ${errorData.error?.message || 'Unknown error'}`);
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+    
+    // Check for reasoning field first (for reasoning models)
+    let content = data.choices?.[0]?.message?.reasoning || data.choices?.[0]?.message?.content;
 
-    if (!content) {
-      throw new Error('No content received from OpenRouter');
+    if (!content || content.trim() === '') {
+      throw new Error('Empty response received from OpenRouter API');
     }
 
     onProgress?.({ status: 'complete', progress: 100, message: 'Generation complete!' });

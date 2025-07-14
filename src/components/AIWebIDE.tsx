@@ -1,312 +1,363 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Moon, 
-  Sun, 
-  Download, 
-  Settings, 
-  Play,
-  Code,
-  Eye,
-  TerminalIcon,
-  Bug
-} from 'lucide-react';
 import { MonacoEditor } from './MonacoEditor';
 import { LivePreview } from './LivePreview';
-import { Terminal } from './Terminal';
-import { Console, useConsole } from './Console';
 import { PromptPanel } from './PromptPanel';
+import { Terminal } from './Terminal';
+import { Console } from './Console';
 import { ExportUtils } from './ExportUtils';
-import { aiService, AIModel, GenerationProgress } from '@/services/aiService';
-import { toast } from '@/hooks/use-toast';
-import { useCodeVersions } from '@/hooks/useCodeVersions';
+import { FileManager } from './FileManager';
+import { ConfirmationDialog } from './ConfirmationDialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { 
+  Code2, 
+  Eye, 
+  MessageSquare, 
+  Terminal as TerminalIcon, 
+  MonitorSpeaker,
+  Download,
+  Minimize2,
+  Maximize2,
+  FolderOpen
+} from 'lucide-react';
+import { aiService, AIModel, GenerationProgress } from '../services/aiService';
+import { useCodeVersions } from '../hooks/useCodeVersions';
+import { useFileManager } from '../hooks/useFileManager';
+import { toast } from 'sonner';
 
 export const AIWebIDE: React.FC = () => {
-  // Theme state
-  const [isDarkMode, setIsDarkMode] = useState(true);
-  
-  // Code state
-  const [code, setCode] = useState(ExportUtils.generateBoilerplate('AI Web IDE Project'));
-  const [activeTab, setActiveTab] = useState('preview');
-  
-  // AI Generation state
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState<GenerationProgress>();
-  
-  // Panel state
+  const [activeTab, setActiveTab] = useState('editor');
   const [isTerminalMinimized, setIsTerminalMinimized] = useState(false);
   const [isConsoleMinimized, setIsConsoleMinimized] = useState(false);
-  const [isPromptMinimized, setIsPromptMinimized] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState<GenerationProgress>({ status: 'idle' });
+  const [promptHistory, setPromptHistory] = useState<string[]>([]);
+  const [pendingChanges, setPendingChanges] = useState<{
+    content: string;
+    prompt: string;
+    targetFileId?: string;
+  } | null>(null);
   
-  // Console hook
-  const console = useConsole();
-  
-  // Code versions hook
   const {
-    versions: codeVersions,
-    currentVersionId,
+    versions,
     addVersion,
-    switchToVersion
+    switchToVersion,
+    deleteVersion,
+    getCurrentVersion
   } = useCodeVersions();
 
-  // Apply theme
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDarkMode);
-  }, [isDarkMode]);
+  const {
+    files,
+    activeFileId,
+    selectedFileId,
+    addFile,
+    updateFile,
+    deleteFile,
+    setActiveFile,
+    setSelectedFile,
+    renameFile,
+    getActiveFile,
+    getSelectedFile,
+    loadLocalFile
+  } = useFileManager();
 
-  // Initialize with welcome message
-  useEffect(() => {
-    console.info('AI Web IDE initialized successfully!');
-    console.log('Use the prompt panel to generate websites with AI');
-    console.log('Available models: Gemini, DeepSeek R1, Qwen3 235B');
-  }, []);
-
-  const handleGenerate = useCallback(async (prompt: string, model: AIModel) => {
-    setIsGenerating(true);
-    setGenerationProgress({ status: 'generating', progress: 0 });
-    
-    console.info(`Starting generation with ${model.name}...`);
-    console.log(`Prompt: "${prompt}"`);
-
+  const handleCodeGeneration = async (prompt: string, model: AIModel, targetFileId?: string) => {
     try {
-      const response = await aiService.generateCode(prompt, model, (progress) => {
-        setGenerationProgress(progress);
-        console.log(`Generation progress: ${progress.progress}% - ${progress.message}`);
-      });
-
+      setGenerationProgress({ status: 'generating', progress: 0 });
+      
+      // Add to prompt history
+      setPromptHistory(prev => [...prev, prompt]);
+      
+      const response = await aiService.generateCode(prompt, model, setGenerationProgress);
+      
       if (response.success && response.content) {
-        setCode(response.content);
+        // Store pending changes for user approval
+        setPendingChanges({
+          content: response.content,
+          prompt,
+          targetFileId
+        });
         
-        // Add to version history
-        addVersion(response.content, prompt, model.name);
-        
-        // Auto-switch to live preview after successful generation
-        setTimeout(() => {
-          setActiveTab('preview');
-          console.success('Code generated successfully! Switching to live preview...');
-        }, 500);
-        
-        console.success('Code generated successfully!');
-        console.log(`Generated ${response.content.length} characters of code`);
+        toast.success(`Code generated successfully with ${model.name}! Please review and approve changes.`);
       } else {
-        throw new Error(response.error || 'Generation failed');
+        toast.error(`Generation failed: ${response.error}`);
+        setGenerationProgress({ status: 'error', message: response.error });
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Generation failed', errorMessage);
-      throw error;
-    } finally {
-      setIsGenerating(false);
-      setGenerationProgress(undefined);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Generation failed: ${errorMessage}`);
+      setGenerationProgress({ status: 'error', message: errorMessage });
     }
-  }, [console, addVersion]);
-
-  const handleTerminalCommand = useCallback(async (command: string): Promise<string> => {
-    console.log(`Terminal command: ${command}`);
-    
-    // Handle special commands
-    switch (command.toLowerCase().trim()) {
-      case 'generate':
-        return 'Use the AI prompt panel to generate code';
-      case 'export':
-        await ExportUtils.exportAsZip(code, 'ai-generated-website');
-        return 'Website exported successfully!';
-      case 'theme':
-        setIsDarkMode(!isDarkMode);
-        return `Theme switched to ${!isDarkMode ? 'dark' : 'light'} mode`;
-      case 'clear':
-        return 'Terminal cleared';
-      default:
-        return `Unknown command: ${command}. Type 'help' for available commands.`;
-    }
-  }, [code, isDarkMode]);
-
-  const handleTerminalQuickCommand = useCallback(async (command: string) => {
-    await handleTerminalCommand(command);
-  }, [handleTerminalCommand]);
-
-  const handleSwitchVersion = useCallback((versionId: string) => {
-    const version = switchToVersion(versionId);
-    if (version) {
-      setCode(version.code);
-      console.info(`Switched to version: ${version.title}`);
-      toast({
-        title: "Version switched",
-        description: `Now viewing: ${version.title}`,
-      });
-    }
-  }, [switchToVersion, console]);
-
-  const handleExport = async () => {
-    console.info('Exporting website...');
-    await ExportUtils.exportAsZip(code, 'ai-generated-website');
-    console.success('Website exported successfully!');
   };
 
-  const handleRunCode = () => {
-    console.info('Running code in preview...');
-    setActiveTab('preview');
-    toast({
-      title: "Code executed!",
-      description: "Check the live preview tab to see your website.",
-    });
+  const applyPendingChanges = () => {
+    if (!pendingChanges) return;
+
+    if (pendingChanges.targetFileId) {
+      // Update specific file
+      updateFile(pendingChanges.targetFileId, pendingChanges.content);
+      setActiveFile(pendingChanges.targetFileId);
+      toast.success('File updated successfully!');
+    } else {
+      // Create new version
+      const newVersion = addVersion(pendingChanges.content, pendingChanges.prompt, 'AI Generated');
+      
+      // Also create a new file
+      const fileName = `generated-${Date.now()}.html`;
+      const fileId = addFile(fileName, pendingChanges.content);
+      setActiveFile(fileId);
+      
+      toast.success('New code version and file created!');
+    }
+
+    // Auto-switch to live preview after successful generation
+    setTimeout(() => {
+      setActiveTab('preview');
+    }, 500);
+
+    setPendingChanges(null);
+  };
+
+  const cancelPendingChanges = () => {
+    setPendingChanges(null);
+    setGenerationProgress({ status: 'idle' });
+  };
+
+  const handleVersionSelect = (version: any) => {
+    switchToVersion(version.id);
+    
+    // Create a new file from the version
+    const fileName = `version-${version.id}-${Date.now()}.html`;
+    const fileId = addFile(fileName, version.content);
+    setActiveFile(fileId);
+    
+    toast.success(`Switched to version: ${version.prompt.substring(0, 50)}...`);
+  };
+
+  const handleCodeChange = (newCode: string) => {
+    // Update the active file
+    if (activeFileId) {
+      updateFile(activeFileId, newCode);
+    }
+  };
+
+  const getCurrentCode = () => {
+    const activeFile = getActiveFile();
+    if (activeFile) {
+      return activeFile.content;
+    }
+    
+    return getCurrentVersion()?.code || `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Girish IDE</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 600px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 2.5rem;
+        }
+        p {
+            color: #666;
+            font-size: 1.2rem;
+            line-height: 1.6;
+        }
+        .highlight {
+            color: #667eea;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to <span class="highlight">Girish IDE</span></h1>
+        <p>Your AI-powered web development environment.</p>
+        <p>Start by describing what you want to build in the prompt panel!</p>
+    </div>
+</body>
+</html>`;
   };
 
   return (
-    <div className="h-screen w-full bg-background text-foreground overflow-hidden">
-      {/* Top Bar */}
-      <div className="h-12 bg-card border-b border-border flex items-center justify-between px-4">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-lg font-bold text-primary">Girish IDE</h1>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleRunCode}
-              className="h-8"
-            >
-              <Play className="h-4 w-4 mr-1" />
-              Run
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleExport}
-              className="h-8"
-            >
-              <Download className="h-4 w-4 mr-1" />
-              Export
-            </Button>
-          </div>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className="h-8 w-8 p-0"
-          >
-            {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-          >
-            <Settings className="h-4 w-4" />
+    <div className="h-screen bg-background flex flex-col">
+      <div className="h-12 bg-card border-b px-4 flex items-center justify-between">
+        <h1 className="text-lg font-bold">Girish IDE</h1>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-1" />
+            Export
           </Button>
         </div>
       </div>
 
-      {/* Main Layout */}
-      <div className="h-[calc(100vh-3rem)]">
-        <PanelGroup direction="horizontal">
-          {/* Left Side - 4 Quadrant Layout */}
-          <Panel defaultSize={75} minSize={60}>
-            <PanelGroup direction="vertical">
-              {/* Top Half */}
-              <Panel defaultSize={60} minSize={30}>
-                <PanelGroup direction="horizontal">
-                  {/* Live Preview */}
-                  <Panel defaultSize={50} minSize={30}>
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-                      <div className="bg-card border-b border-border px-4">
-                        <TabsList className="grid w-full grid-cols-2">
-                          <TabsTrigger value="preview" className="flex items-center space-x-2">
-                            <Eye className="h-4 w-4" />
-                            <span>Live Preview</span>
-                          </TabsTrigger>
-                          <TabsTrigger value="code" className="flex items-center space-x-2">
-                            <Code className="h-4 w-4" />
-                            <span>Code Editor</span>
-                          </TabsTrigger>
-                        </TabsList>
-                      </div>
-                      
-                      <div className="flex-1">
-                        <TabsContent value="preview" className="h-full m-0">
-                          <LivePreview code={code} />
-                        </TabsContent>
-                        <TabsContent value="code" className="h-full m-0">
-                          <MonacoEditor
-                            value={code}
-                            onChange={setCode}
-                            theme={isDarkMode ? 'vs-dark' : 'vs-light'}
-                          />
-                        </TabsContent>
-                      </div>
-                    </Tabs>
-                  </Panel>
-                  
-                  <PanelResizeHandle className="w-2 bg-border hover:bg-primary/50 transition-colors" />
-                  
-                  {/* Code Editor (when preview is separate) - Hidden when using tabs */}
-                  <Panel defaultSize={50} minSize={30} className="hidden">
-                    <MonacoEditor
-                      value={code}
-                      onChange={setCode}
-                      theme={isDarkMode ? 'vs-dark' : 'vs-light'}
-                    />
-                  </Panel>
-                </PanelGroup>
+      <div className="flex-1">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+          <TabsList className="grid w-full grid-cols-5 mx-4 mt-4">
+            <TabsTrigger value="editor" className="flex items-center gap-2">
+              <Code2 className="h-4 w-4" />
+              Editor
+            </TabsTrigger>
+            <TabsTrigger value="preview" className="flex items-center gap-2">
+              <Eye className="h-4 w-4" />
+              Preview
+            </TabsTrigger>
+            <TabsTrigger value="files" className="flex items-center gap-2">
+              <FolderOpen className="h-4 w-4" />
+              Files
+              {files.length > 0 && (
+                <Badge variant="secondary" className="ml-1 text-xs">
+                  {files.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="prompt" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              AI Assistant
+            </TabsTrigger>
+            <TabsTrigger value="export" className="flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              Export
+            </TabsTrigger>
+          </TabsList>
+
+          <div className="flex-1 m-4">
+            <PanelGroup direction="horizontal" className="h-full">
+              <Panel defaultSize={75} minSize={50}>
+                <TabsContent value="editor" className="h-full p-0 m-0">
+                  <MonacoEditor
+                    value={getCurrentCode()}
+                    onChange={handleCodeChange}
+                    language={getActiveFile()?.language || "html"}
+                  />
+                </TabsContent>
+
+                <TabsContent value="preview" className="h-full p-0 m-0">
+                  <LivePreview code={getCurrentCode()} />
+                </TabsContent>
+
+                <TabsContent value="files" className="h-full p-0 m-0">
+                  <FileManager
+                    files={files}
+                    activeFileId={activeFileId}
+                    selectedFileId={selectedFileId}
+                    onFileSelect={setActiveFile}
+                    onFileDelete={deleteFile}
+                    onFileRename={renameFile}
+                    onFileCreate={addFile}
+                    onLocalFileLoad={loadLocalFile}
+                    onFileTag={setSelectedFile}
+                  />
+                </TabsContent>
+
+                <TabsContent value="prompt" className="h-full p-0 m-0">
+                  <PromptPanel
+                    onGenerate={handleCodeGeneration}
+                    generationProgress={generationProgress}
+                    codeVersions={versions}
+                    onVersionSelect={handleVersionSelect}
+                    onVersionDelete={deleteVersion}
+                    selectedFile={getSelectedFile()}
+                    onFileUntag={() => setSelectedFile(null)}
+                    promptHistory={promptHistory}
+                  />
+                </TabsContent>
+
+                <TabsContent value="export" className="h-full p-0 m-0">
+                  <div className="p-4">
+                    <h2 className="text-lg font-semibold mb-4">Export</h2>
+                    <Button onClick={() => ExportUtils.exportAsZip(getCurrentCode(), 'website')}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Export as ZIP
+                    </Button>
+                  </div>
+                </TabsContent>
               </Panel>
-              
-              <PanelResizeHandle className="h-2 bg-border hover:bg-primary/50 transition-colors" />
-              
-              {/* Bottom Half */}
-              <Panel defaultSize={40} minSize={20}>
-                <PanelGroup direction="horizontal">
-                  {/* Terminal */}
-                  <Panel defaultSize={50} minSize={25}>
-                    <Terminal
-                      onCommand={handleTerminalCommand}
-                      onQuickCommand={handleTerminalQuickCommand}
-                      isMinimized={isTerminalMinimized}
-                      onToggleMinimize={() => setIsTerminalMinimized(!isTerminalMinimized)}
-                      isActive={isGenerating}
-                      className="h-full"
+
+              <PanelResizeHandle className="w-2 bg-border hover:bg-primary/20 transition-colors" />
+
+              <Panel defaultSize={25} minSize={20}>
+                <PanelGroup direction="vertical">
+                  <Panel defaultSize={60} minSize={30}>
+                    <PromptPanel
+                      onGenerate={handleCodeGeneration}
+                      generationProgress={generationProgress}
+                      codeVersions={versions}
+                      onVersionSelect={handleVersionSelect}
+                      onVersionDelete={deleteVersion}
+                      selectedFile={getSelectedFile()}
+                      onFileUntag={() => setSelectedFile(null)}
+                      promptHistory={promptHistory}
                     />
                   </Panel>
-                  
-                  <PanelResizeHandle className="w-2 bg-border hover:bg-primary/50 transition-colors" />
-                  
-                  {/* Console */}
-                  <Panel defaultSize={50} minSize={25}>
-                    <Console
-                      messages={console.messages}
-                      onClear={console.clear}
-                      isMinimized={isConsoleMinimized}
-                      onToggleMinimize={() => setIsConsoleMinimized(!isConsoleMinimized)}
-                      isProcessing={isGenerating}
-                      className="h-full"
-                    />
+
+                  <PanelResizeHandle className="h-2 bg-border hover:bg-primary/20 transition-colors" />
+
+                  <Panel defaultSize={40} minSize={20}>
+                    <PanelGroup direction="horizontal">
+                      <Panel defaultSize={50} minSize={30}>
+                        <Terminal
+                          isMinimized={isTerminalMinimized}
+                          onToggleMinimize={() => setIsTerminalMinimized(!isTerminalMinimized)}
+                          onCommand={async (cmd) => `Executed: ${cmd}`}
+                          onQuickCommand={async (cmd) => `Quick: ${cmd}`}
+                          isActive={generationProgress.status === 'generating'}
+                        />
+                      </Panel>
+
+                      <PanelResizeHandle className="w-2 bg-border hover:bg-primary/20 transition-colors" />
+
+                      <Panel defaultSize={50} minSize={30}>
+                        <Console
+                          isMinimized={isConsoleMinimized}
+                          onToggleMinimize={() => setIsConsoleMinimized(!isConsoleMinimized)}
+                          messages={[]}
+                          onClear={() => {}}
+                          isProcessing={generationProgress.status === 'generating'}
+                        />
+                      </Panel>
+                    </PanelGroup>
                   </Panel>
                 </PanelGroup>
               </Panel>
             </PanelGroup>
-          </Panel>
-          
-          <PanelResizeHandle className="w-2 bg-border hover:bg-primary/50 transition-colors" />
-          
-          {/* Right Side - Prompt Panel */}
-          <Panel defaultSize={25} minSize={20} maxSize={40}>
-            <PromptPanel
-              onGenerate={handleGenerate}
-              isGenerating={isGenerating}
-              progress={generationProgress}
-              isMinimized={isPromptMinimized}
-              onToggleMinimize={() => setIsPromptMinimized(!isPromptMinimized)}
-              codeVersions={codeVersions}
-              currentVersionId={currentVersionId}
-              onSwitchVersion={handleSwitchVersion}
-              className="h-full"
-            />
-          </Panel>
-        </PanelGroup>
+          </div>
+        </Tabs>
       </div>
+
+      <ConfirmationDialog
+        isOpen={!!pendingChanges}
+        title="Apply Generated Code?"
+        description={
+          pendingChanges?.targetFileId
+            ? `Do you want to apply the generated code to ${getSelectedFile()?.name}? This will replace the current content.`
+            : "Do you want to apply the generated code? This will create a new version and file."
+        }
+        onConfirm={applyPendingChanges}
+        onCancel={cancelPendingChanges}
+        confirmText="Apply Changes"
+        cancelText="Cancel"
+      />
     </div>
   );
 };

@@ -1,422 +1,243 @@
-import React, { useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
-import { 
-  Send, 
-  Sparkles, 
-  History, 
-  RefreshCw, 
-  ChevronRight,
-  ChevronLeft,
-  Clock,
-  Zap,
-  Brain,
-  Cpu,
-  FileText,
-  GitBranch,
-  ArrowRight
-} from 'lucide-react';
-import { AI_MODELS, AIModel, GenerationProgress } from '@/services/aiService';
-import { toast } from '@/hooks/use-toast';
-import { CodeVersion } from '@/hooks/useCodeVersions';
-
-interface PromptHistoryItem {
-  id: string;
-  prompt: string;
-  model: AIModel;
-  timestamp: Date;
-  success: boolean;
-  response?: string;
-}
+import React, { useState } from 'react';
+import { Button } from './ui/button';
+import { Textarea } from './ui/textarea';
+import { Card } from './ui/card';
+import { Badge } from './ui/badge';
+import { Progress } from './ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { ScrollArea } from './ui/scroll-area';
+import { Separator } from './ui/separator';
+import { Bot, Clock, FileText, RotateCcw, Trash2, Tag, X } from 'lucide-react';
+import { AIModel, AI_MODELS, GenerationProgress } from '../services/aiService';
+import { CodeVersion } from '../hooks/useCodeVersions';
+import { CodeFile } from '../hooks/useFileManager';
 
 interface PromptPanelProps {
-  onGenerate: (prompt: string, model: AIModel) => Promise<void>;
-  isGenerating: boolean;
-  progress?: GenerationProgress;
-  className?: string;
-  isMinimized?: boolean;
-  onToggleMinimize?: () => void;
-  codeVersions?: CodeVersion[];
-  currentVersionId?: string | null;
-  onSwitchVersion?: (versionId: string) => void;
+  onGenerate: (prompt: string, model: AIModel, targetFileId?: string) => Promise<void>;
+  generationProgress: GenerationProgress;
+  codeVersions: CodeVersion[];
+  onVersionSelect: (version: CodeVersion) => void;
+  onVersionDelete: (versionId: string) => void;
+  selectedFile: CodeFile | null;
+  onFileUntag: () => void;
+  promptHistory: string[];
 }
 
 export const PromptPanel: React.FC<PromptPanelProps> = ({
   onGenerate,
-  isGenerating,
-  progress,
-  className = '',
-  isMinimized = false,
-  onToggleMinimize,
-  codeVersions = [],
-  currentVersionId,
-  onSwitchVersion
+  generationProgress,
+  codeVersions,
+  onVersionSelect,
+  onVersionDelete,
+  selectedFile,
+  onFileUntag,
+  promptHistory
 }) => {
   const [prompt, setPrompt] = useState('');
   const [selectedModel, setSelectedModel] = useState<AIModel>(AI_MODELS[0]);
-  const [history, setHistory] = useState<PromptHistoryItem[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
-  const [showVersions, setShowVersions] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleGenerate = async () => {
-    if (!prompt.trim() || isGenerating) return;
-
-    const historyItem: PromptHistoryItem = {
-      id: `${Date.now()}-${Math.random()}`,
-      prompt: prompt.trim(),
-      model: selectedModel,
-      timestamp: new Date(),
-      success: false
-    };
-
-    try {
-      await onGenerate(prompt.trim(), selectedModel);
-      historyItem.success = true;
-      toast({
-        title: "Code generated successfully!",
-        description: `Generated with ${selectedModel.name}`,
-      });
-    } catch (error) {
-      historyItem.success = false;
-      toast({
-        title: "Generation failed",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
-        variant: "destructive",
-      });
-    }
-
-    setHistory(prev => [historyItem, ...prev.slice(0, 19)]); // Keep last 20 items
+  const handleSubmit = async () => {
+    if (!prompt.trim() || !selectedModel || generationProgress.status === 'generating') return;
+    
+    await onGenerate(prompt, selectedModel, selectedFile?.id);
     setPrompt('');
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      handleGenerate();
-    }
-  };
-
-  const useHistoryPrompt = (historyItem: PromptHistoryItem) => {
-    setPrompt(historyItem.prompt);
-    setSelectedModel(historyItem.model);
-    setShowHistory(false);
-    textareaRef.current?.focus();
-  };
-
-  const regenerateLastPrompt = () => {
-    const lastSuccessful = history.find(item => item.success);
-    if (lastSuccessful) {
-      setPrompt(lastSuccessful.prompt);
-      setSelectedModel(lastSuccessful.model);
-    }
-  };
-
-  const getModelIcon = (model: AIModel) => {
-    switch (model.provider) {
-      case 'gemini':
-        return <Sparkles className="h-4 w-4" />;
-      case 'deepseek':
-        return <Brain className="h-4 w-4" />;
-      case 'openrouter':
-        return <Cpu className="h-4 w-4" />;
-      default:
-        return <Zap className="h-4 w-4" />;
-    }
-  };
-
-  const getModelBadgeColor = (model: AIModel) => {
-    switch (model.provider) {
-      case 'gemini':
-        return 'bg-blue-500';
-      case 'deepseek':
-        return 'bg-purple-500';
-      case 'openrouter':
-        return 'bg-green-500';
-      default:
-        return 'bg-gray-500';
-    }
-  };
-
-  if (isMinimized) {
-    return (
-      <div className={`bg-card border border-border rounded-lg ${className}`}>
-        <div className="flex items-center justify-between p-3">
-          <div className="flex items-center space-x-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">AI Prompt</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onToggleMinimize}
-            className="h-6 w-6 p-0"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const isGenerating = generationProgress.status === 'generating';
 
   return (
-    <div className={`bg-card border border-border rounded-lg ${className}`}>
-      <div className="flex items-center justify-between p-3 border-b border-border">
-        <div className="flex items-center space-x-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <span className="font-semibold">AI Code Generator</span>
-        </div>
-        <div className="flex items-center space-x-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowVersions(!showVersions)}
-            className="h-8 px-2"
-            title="Code Versions"
-          >
-            <GitBranch className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowHistory(!showHistory)}
-            className="h-8 px-2"
-            title="Prompt History"
-          >
-            <History className="h-4 w-4" />
-          </Button>
-          {onToggleMinimize && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onToggleMinimize}
-              className="h-6 w-6 p-0"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
+    <Card className="h-full flex flex-col">
+      <div className="p-4 border-b">
+        <h2 className="font-semibold flex items-center gap-2">
+          <Bot className="h-5 w-5" />
+          AI Assistant
+        </h2>
       </div>
 
-      <div className="p-4 space-y-4">
-        {/* Model Selection */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">AI Model</label>
-          <Select
-            value={selectedModel.id}
-            onValueChange={(value) => {
-              const model = AI_MODELS.find(m => m.id === value);
-              if (model) setSelectedModel(model);
-            }}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {AI_MODELS.map((model) => (
-                <SelectItem key={model.id} value={model.id}>
-                  <div className="flex items-center space-x-2">
-                    {getModelIcon(model)}
-                    <span>{model.name}</span>
-                    <Badge 
-                      variant="secondary" 
-                      className={`text-white ${getModelBadgeColor(model)}`}
-                    >
-                      {model.provider}
-                    </Badge>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <Tabs defaultValue="prompt" className="flex-1 flex flex-col">
+        <TabsList className="grid w-full grid-cols-3 mx-4 mt-4">
+          <TabsTrigger value="prompt">Generate</TabsTrigger>
+          <TabsTrigger value="versions">
+            Versions ({codeVersions.length})
+          </TabsTrigger>
+          <TabsTrigger value="history">
+            History ({promptHistory.length})
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Prompt Input */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Describe what you want to build</label>
+        <TabsContent value="prompt" className="flex-1 p-4 space-y-4">
+          {selectedFile && (
+            <div className="mb-3 p-2 bg-primary/10 rounded-lg border border-primary/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Target File: {selectedFile.name}</span>
+                  <Badge variant="outline" className="text-xs">{selectedFile.language}</Badge>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onFileUntag}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                AI will modify this specific file
+              </p>
+            </div>
+          )}
+          
           <Textarea
-            ref={textareaRef}
+            placeholder={selectedFile 
+              ? `Describe changes to make in ${selectedFile.name}...`
+              : "Describe the website you want to create..."
+            }
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="e.g., Create a modern landing page for a tech startup with hero section, features, and contact form..."
-            className="min-h-[120px] resize-none"
-            disabled={isGenerating}
+            className="min-h-24 resize-none"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
           />
-          <div className="text-xs text-muted-foreground">
-            Press Ctrl+Enter (Cmd+Enter on Mac) to generate
-          </div>
-        </div>
 
-        {/* Generation Progress */}
-        {isGenerating && progress && (
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Generating...</span>
-              <span className="text-xs text-muted-foreground">
-                {progress.progress}%
-              </span>
-            </div>
-            <Progress value={progress.progress || 0} className="w-full" />
-            <div className="text-xs text-muted-foreground">
-              {progress.message}
-            </div>
+            <Select
+              value={selectedModel.id}
+              onValueChange={(value) => {
+                const model = AI_MODELS.find(m => m.id === value);
+                if (model) setSelectedModel(model);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select AI Model" />
+              </SelectTrigger>
+              <SelectContent>
+                {AI_MODELS.map((model) => (
+                  <SelectItem key={model.id} value={model.id}>
+                    <div className="flex items-center justify-between w-full">
+                      <span>{model.name}</span>
+                      <Badge variant="secondary" className="ml-2">
+                        {model.provider}
+                      </Badge>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        )}
 
-        {/* Action Buttons */}
-        <div className="flex space-x-2">
+          {isGenerating && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Generating...</span>
+                <span className="text-sm text-muted-foreground">
+                  {generationProgress.progress || 0}%
+                </span>
+              </div>
+              <Progress value={generationProgress.progress || 0} />
+              {generationProgress.message && (
+                <p className="text-xs text-muted-foreground">
+                  {generationProgress.message}
+                </p>
+              )}
+            </div>
+          )}
+
           <Button
-            onClick={handleGenerate}
+            onClick={handleSubmit}
             disabled={!prompt.trim() || isGenerating}
-            className="flex-1"
+            className="w-full"
           >
             {isGenerating ? (
               <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                <RotateCcw className="h-4 w-4 mr-2 animate-spin" />
                 Generating...
               </>
             ) : (
               <>
-                <Send className="h-4 w-4 mr-2" />
-                Generate
+                <Bot className="h-4 w-4 mr-2" />
+                Generate Code
               </>
             )}
           </Button>
-          
-          {history.length > 0 && (
-            <Button
-              variant="outline"
-              onClick={regenerateLastPrompt}
-              disabled={isGenerating}
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
+        </TabsContent>
 
-        {/* Code Versions */}
-        {showVersions && (
-          <>
-            <Separator />
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Code Versions</span>
-                <Badge variant="secondary">{codeVersions.length}</Badge>
-              </div>
-              
-              <div className="max-h-60 overflow-y-auto space-y-2 ide-scrollbar">
-                {codeVersions.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-4">
-                    <FileText className="h-6 w-6 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No code versions yet</p>
+        <TabsContent value="versions" className="flex-1 p-0">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Code Versions
+              </h3>
+              {codeVersions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No versions yet</p>
+              ) : (
+                codeVersions.map((version) => (
+                  <div
+                    key={version.id}
+                    className="p-3 bg-secondary/50 rounded-lg cursor-pointer hover:bg-secondary transition-colors"
+                    onClick={() => onVersionSelect(version)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-medium text-sm mb-1">{version.model}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                          {version.prompt}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {version.timestamp.toLocaleString()}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onVersionDelete(version.id);
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
-                ) : (
-                  codeVersions.map((version) => (
-                    <Card 
-                      key={version.id} 
-                      className={`cursor-pointer transition-colors ${
-                        currentVersionId === version.id 
-                          ? 'bg-primary/10 border-primary/30' 
-                          : 'hover:bg-accent/50'
-                      }`}
-                      onClick={() => onSwitchVersion?.(version.id)}
-                    >
-                      <CardContent className="p-3">
-                        <div className="flex items-start justify-between space-x-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <FileText className="h-3 w-3" />
-                              <p className="text-sm font-medium truncate">{version.title}</p>
-                              {currentVersionId === version.id && (
-                                <Badge variant="default" className="text-xs">Current</Badge>
-                              )}
-                            </div>
-                            <p className="text-xs text-muted-foreground truncate mb-1">
-                              {version.prompt}
-                            </p>
-                            <div className="flex items-center space-x-2">
-                              <span className="text-xs text-muted-foreground">
-                                {version.model}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {version.timestamp.toLocaleTimeString()}
-                              </span>
-                            </div>
-                          </div>
-                          <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-              </div>
+                ))
+              )}
             </div>
-          </>
-        )}
-
-        {/* Prompt History */}
-        {showHistory && (
-          <>
-            <Separator />
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Recent Prompts</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setHistory([])}
-                  className="h-6 text-xs"
-                >
-                  Clear
-                </Button>
-              </div>
-              
-              <div className="max-h-60 overflow-y-auto space-y-2 ide-scrollbar">
-                {history.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-4">
-                    <Clock className="h-6 w-6 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No prompts yet</p>
+          </ScrollArea>
+        </TabsContent>
+        
+        <TabsContent value="history" className="flex-1 p-0">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Prompt History
+              </h3>
+              {promptHistory.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No prompts yet</p>
+              ) : (
+                promptHistory.slice().reverse().map((historyPrompt, index) => (
+                  <div
+                    key={index}
+                    className="p-3 bg-secondary/50 rounded-lg cursor-pointer hover:bg-secondary transition-colors"
+                    onClick={() => setPrompt(historyPrompt)}
+                  >
+                    <p className="text-sm line-clamp-3">{historyPrompt}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Click to reuse this prompt
+                    </p>
                   </div>
-                ) : (
-                  history.map((item) => (
-                    <Card 
-                      key={item.id} 
-                      className="cursor-pointer hover:bg-accent/50 transition-colors"
-                      onClick={() => useHistoryPrompt(item)}
-                    >
-                      <CardContent className="p-3">
-                        <div className="flex items-start justify-between space-x-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm truncate">{item.prompt}</p>
-                            <div className="flex items-center space-x-2 mt-1">
-                              {getModelIcon(item.model)}
-                              <span className="text-xs text-muted-foreground">
-                                {item.model.name}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {item.timestamp.toLocaleTimeString()}
-                              </span>
-                            </div>
-                          </div>
-                          <div className={`w-2 h-2 rounded-full ${
-                            item.success ? 'bg-success' : 'bg-destructive'
-                          }`} />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-              </div>
+                ))
+              )}
             </div>
-          </>
-        )}
-      </div>
-    </div>
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
+    </Card>
   );
 };
