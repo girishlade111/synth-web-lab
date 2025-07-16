@@ -3,11 +3,11 @@ import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import { MonacoEditor } from './MonacoEditor';
 import { LivePreview } from './LivePreview';
 import { PromptPanel } from './PromptPanel';
-import { Terminal } from './Terminal';
 import { Console } from './Console';
 import { ExportUtils } from './ExportUtils';
 import { FileManager } from './FileManager';
 import { ConfirmationDialog } from './ConfirmationDialog';
+import { ThemeToggle } from './ThemeToggle';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -15,7 +15,6 @@ import {
   Code2, 
   Eye, 
   MessageSquare, 
-  Terminal as TerminalIcon, 
   MonitorSpeaker,
   Download,
   Minimize2,
@@ -29,7 +28,6 @@ import { toast } from 'sonner';
 
 export const AIWebIDE: React.FC = () => {
   const [activeTab, setActiveTab] = useState('editor');
-  const [isTerminalMinimized, setIsTerminalMinimized] = useState(false);
   const [isConsoleMinimized, setIsConsoleMinimized] = useState(false);
   const [generationProgress, setGenerationProgress] = useState<GenerationProgress>({ status: 'idle' });
   const [promptHistory, setPromptHistory] = useState<string[]>([]);
@@ -232,6 +230,7 @@ Please provide the complete updated code that incorporates the requested changes
       <div className="h-12 bg-card border-b px-4 flex items-center justify-between">
         <h1 className="text-lg font-bold">Girish IDE</h1>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-1" />
             Export
@@ -342,29 +341,13 @@ Please provide the complete updated code that incorporates the requested changes
                   <PanelResizeHandle className="h-2 bg-border hover:bg-primary/20 transition-colors" />
 
                   <Panel defaultSize={40} minSize={20}>
-                    <PanelGroup direction="horizontal">
-                      <Panel defaultSize={50} minSize={30}>
-                        <Terminal
-                          isMinimized={isTerminalMinimized}
-                          onToggleMinimize={() => setIsTerminalMinimized(!isTerminalMinimized)}
-                          onCommand={async (cmd) => `Executed: ${cmd}`}
-                          onQuickCommand={async (cmd) => `Quick: ${cmd}`}
-                          isActive={generationProgress.status === 'generating'}
-                        />
-                      </Panel>
-
-                      <PanelResizeHandle className="w-2 bg-border hover:bg-primary/20 transition-colors" />
-
-                      <Panel defaultSize={50} minSize={30}>
-                        <Console
-                          isMinimized={isConsoleMinimized}
-                          onToggleMinimize={() => setIsConsoleMinimized(!isConsoleMinimized)}
-                          messages={[]}
-                          onClear={() => {}}
-                          isProcessing={generationProgress.status === 'generating'}
-                        />
-                      </Panel>
-                    </PanelGroup>
+                    <Console
+                      isMinimized={isConsoleMinimized}
+                      onToggleMinimize={() => setIsConsoleMinimized(!isConsoleMinimized)}
+                      messages={[]}
+                      onClear={() => {}}
+                      isProcessing={generationProgress.status === 'generating'}
+                    />
                   </Panel>
                 </PanelGroup>
               </Panel>
