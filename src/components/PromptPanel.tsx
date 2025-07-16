@@ -66,7 +66,7 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="prompt" className="flex-1 p-4 space-y-4">
+        <TabsContent value="prompt" className="flex-1 p-4 space-y-4 flex flex-col">
           {selectedFile && (
             <div className="mb-3 p-2 bg-primary/10 rounded-lg border border-primary/20">
               <div className="flex items-center justify-between">
@@ -89,82 +89,105 @@ export const PromptPanel: React.FC<PromptPanelProps> = ({
             </div>
           )}
           
-          <Textarea
-            placeholder={selectedFile 
-              ? `Describe changes to make in ${selectedFile.name}...`
-              : "Describe the website you want to create..."
-            }
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            className="min-h-24 resize-none"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                handleSubmit();
+          <div className="flex-1 flex flex-col space-y-4">
+            <Textarea
+              placeholder={selectedFile 
+                ? `Describe changes to make in ${selectedFile.name}...`
+                : "Describe the website you want to create or add follow-up changes..."
               }
-            }}
-          />
-
-          <div className="space-y-2">
-            <Select
-              value={selectedModel.id}
-              onValueChange={(value) => {
-                const model = AI_MODELS.find(m => m.id === value);
-                if (model) setSelectedModel(model);
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              className="min-h-24 resize-none"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                  e.preventDefault();
+                  handleSubmit();
+                }
               }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select AI Model" />
-              </SelectTrigger>
-              <SelectContent>
-                {AI_MODELS.map((model) => (
-                  <SelectItem key={model.id} value={model.id}>
-                    <div className="flex items-center justify-between w-full">
-                      <span>{model.name}</span>
-                      <Badge variant="secondary" className="ml-2">
-                        {model.provider}
-                      </Badge>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            />
 
-          {isGenerating && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Generating...</span>
-                <span className="text-sm text-muted-foreground">
-                  {generationProgress.progress || 0}%
-                </span>
+            {/* Quick History Access */}
+            {promptHistory.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-medium text-muted-foreground">Recent Prompts (Click to reuse):</h4>
+                <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
+                  {promptHistory.slice(0, 3).map((historyPrompt, index) => (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-6 px-2 truncate max-w-32"
+                      onClick={() => setPrompt(historyPrompt)}
+                      title={historyPrompt}
+                    >
+                      {historyPrompt.slice(0, 20)}...
+                    </Button>
+                  ))}
+                </div>
               </div>
-              <Progress value={generationProgress.progress || 0} />
-              {generationProgress.message && (
-                <p className="text-xs text-muted-foreground">
-                  {generationProgress.message}
-                </p>
-              )}
-            </div>
-          )}
-
-          <Button
-            onClick={handleSubmit}
-            disabled={!prompt.trim() || isGenerating}
-            className="w-full"
-          >
-            {isGenerating ? (
-              <>
-                <RotateCcw className="h-4 w-4 mr-2 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Bot className="h-4 w-4 mr-2" />
-                Generate Code
-              </>
             )}
-          </Button>
+
+            <div className="space-y-2">
+              <Select
+                value={selectedModel.id}
+                onValueChange={(value) => {
+                  const model = AI_MODELS.find(m => m.id === value);
+                  if (model) setSelectedModel(model);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select AI Model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AI_MODELS.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      <div className="flex items-center justify-between w-full">
+                        <span>{model.name}</span>
+                        <Badge variant="secondary" className="ml-2">
+                          {model.provider}
+                        </Badge>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {isGenerating && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Generating...</span>
+                  <span className="text-sm text-muted-foreground">
+                    {generationProgress.progress || 0}%
+                  </span>
+                </div>
+                <Progress value={generationProgress.progress || 0} />
+                {generationProgress.message && (
+                  <p className="text-xs text-muted-foreground">
+                    {generationProgress.message}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <Button
+              onClick={handleSubmit}
+              disabled={!prompt.trim() || isGenerating}
+              className="w-full"
+            >
+              {isGenerating ? (
+                <>
+                  <RotateCcw className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Bot className="h-4 w-4 mr-2" />
+                  {promptHistory.length > 0 ? 'Continue & Generate' : 'Generate Code'}
+                </>
+              )}
+            </Button>
+          </div>
         </TabsContent>
 
         <TabsContent value="versions" className="flex-1 p-0">

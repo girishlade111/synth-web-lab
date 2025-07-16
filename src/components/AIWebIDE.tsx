@@ -66,17 +66,45 @@ export const AIWebIDE: React.FC = () => {
     try {
       setGenerationProgress({ status: 'generating', progress: 0 });
       
-      // Add to prompt history
-      setPromptHistory(prev => [...prev, prompt]);
+      // Add to prompt history (avoid duplicates)
+      setPromptHistory(prev => {
+        const newHistory = [prompt, ...prev.filter(p => p !== prompt)];
+        return newHistory.slice(0, 20); // Keep only last 20 prompts
+      });
+
+      // For follow-up prompts, use existing code as context
+      let contextCode = '';
+      let enhancedPrompt = prompt;
+
+      if (targetFileId) {
+        const targetFile = files.find(f => f.id === targetFileId);
+        contextCode = targetFile?.content || '';
+      } else if (files.length > 0) {
+        // Use the currently active file or the most recent file
+        const activeFile = getActiveFile();
+        contextCode = activeFile?.content || files[0].content || '';
+      }
+
+      // Enhance prompt with context for follow-up changes
+      if (contextCode && files.length > 0) {
+        enhancedPrompt = `Based on the existing code below, please modify or enhance it according to the user's request.
+
+EXISTING CODE:
+${contextCode}
+
+USER REQUEST: ${prompt}
+
+Please provide the complete updated code that incorporates the requested changes while maintaining the existing functionality.`;
+      }
       
-      const response = await aiService.generateCode(prompt, model, setGenerationProgress);
+      const response = await aiService.generateCode(enhancedPrompt, model, setGenerationProgress);
       
       if (response.success && response.content) {
         // Store pending changes for user approval
         setPendingChanges({
           content: response.content,
           prompt,
-          targetFileId
+          targetFileId: targetFileId || (files.length > 0 ? getActiveFile()?.id : undefined)
         });
         
         toast.success(`Code generated successfully with ${model.name}! Please review and approve changes.`);
