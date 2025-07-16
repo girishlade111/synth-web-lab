@@ -4,7 +4,7 @@ import { ExternalLink, RefreshCw, Smartphone, Tablet, Monitor } from 'lucide-rea
 import { toast } from '@/hooks/use-toast';
 
 interface LivePreviewProps {
-  code: string;
+  code: string | undefined;
   className?: string;
 }
 
@@ -26,7 +26,7 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ code, className = '' }
   }, [code]);
 
   const updatePreview = () => {
-    if (!iframeRef.current || !code.trim()) return;
+    if (!iframeRef.current || !code || !code.trim()) return;
 
     setIsLoading(true);
 
@@ -94,7 +94,7 @@ ${code}
   };
 
   const openInNewTab = () => {
-    if (!code.trim()) {
+    if (!code || !code.trim()) {
       toast({
         title: "No code to preview",
         description: "Please generate some code first.",
@@ -182,7 +182,7 @@ ${code}
       </div>
       
       <div className="flex-1 bg-preview-background flex items-center justify-center p-4">
-        {!code.trim() ? (
+        {!code || !code.trim() ? (
           <div className="text-center text-muted-foreground">
             <Monitor className="h-12 w-12 mx-auto mb-2 opacity-50" />
             <p>No code to preview</p>
