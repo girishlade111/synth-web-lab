@@ -276,19 +276,39 @@ class AIService {
 
   private enhancePromptForWebDev(prompt: string): string {
     return `
-Create a complete, production-ready web application based on this request: "${prompt}"
+Create a stunning, production-ready web application based on this request: "${prompt}"
 
-Requirements:
-1. Generate clean, semantic HTML structure
-2. Include responsive CSS with modern styling
-3. Add interactive JavaScript functionality where appropriate
-4. Use modern web standards and best practices
-5. Ensure the code is complete and can run directly in a browser
-6. Include proper error handling and accessibility features
-7. Use a modern color scheme and typography
-8. Make it mobile-responsive
+DESIGN REQUIREMENTS (Make it visually stunning):
+1. Use a beautiful, modern color palette with gradients and subtle shadows
+2. Implement elegant typography with proper font hierarchy
+3. Add smooth animations and hover effects for interactivity
+4. Use CSS Grid and Flexbox for perfect layouts
+5. Include beautiful spacing, padding, and margins for visual breathing room
+6. Add subtle background patterns, textures, or gradients for depth
+7. Use modern CSS features like backdrop-filter, box-shadow, and border-radius creatively
 
-Please provide the complete HTML file with embedded CSS and JavaScript, ready to run in a browser.
+TECHNICAL REQUIREMENTS (Make it professional):
+1. Generate clean, semantic HTML5 structure with proper tags
+2. Write responsive CSS that works perfectly on all devices (mobile-first approach)
+3. Add interactive JavaScript functionality with smooth UX
+4. Include proper meta tags, favicons, and SEO optimization
+5. Implement accessibility features (ARIA labels, keyboard navigation, focus states)
+6. Use modern CSS custom properties (variables) for maintainable styling
+7. Add loading states, error handling, and form validation where needed
+8. Include proper commenting and code organization
+
+AESTHETIC REQUIREMENTS (Make it beautiful):
+1. Choose a cohesive color scheme that evokes the right emotion for the content
+2. Use whitespace effectively to create visual hierarchy
+3. Add subtle micro-interactions and animations (CSS transitions/transforms)
+4. Implement beautiful buttons, cards, and components with depth
+5. Use consistent spacing scale (8px, 16px, 24px, 32px, etc.)
+6. Add icons or visual elements that enhance the design
+7. Create smooth scrolling and navigation experiences
+8. Ensure perfect contrast ratios for readability
+
+OUTPUT FORMAT:
+Provide a complete, single HTML file with embedded CSS and JavaScript that demonstrates professional web development standards and creates a visually stunning user experience.
     `.trim();
   }
 
@@ -337,22 +357,22 @@ Please provide the complete HTML file with embedded CSS and JavaScript, ready to
 
   async generateSuggestions(code: string): Promise<AIResponse> {
     const prompt = `
-Analyze the following code and provide 3-5 specific suggestions to make it better, more responsive, and follow modern web development best practices:
+Analyze and improve the following code. Provide the complete enhanced version with these improvements:
 
-CODE:
+CURRENT CODE:
 ${code}
 
-Please provide suggestions in this format:
-1. [Category]: [Specific suggestion with brief explanation]
-2. [Category]: [Specific suggestion with brief explanation]
-etc.
+ENHANCEMENT REQUIREMENTS:
+1. Make it more responsive and mobile-friendly
+2. Improve visual design with better colors, spacing, and typography
+3. Add smooth animations and hover effects
+4. Optimize performance and accessibility
+5. Use modern CSS features (Grid, Flexbox, custom properties)
+6. Add interactive elements where appropriate
+7. Improve semantic HTML structure
+8. Enhance user experience with better UX patterns
 
-Focus on:
-- Performance optimizations
-- Responsive design improvements
-- Accessibility enhancements
-- Modern CSS/JS practices
-- User experience improvements
+OUTPUT: Provide the complete improved HTML file with embedded CSS and JavaScript. Make it significantly better than the original while maintaining all existing functionality.
     `.trim();
 
     // Use Gemini for suggestions (fastest)

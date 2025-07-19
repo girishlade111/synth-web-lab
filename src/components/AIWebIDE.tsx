@@ -303,8 +303,17 @@ Please provide the complete updated code that incorporates the requested changes
                     <AISuggestionButton
                       code={getCurrentCode()}
                       onSuggestionApply={(suggestions) => {
-                        // You can implement auto-apply of suggestions here if needed
-                        console.log('AI Suggestions:', suggestions);
+                        // Apply suggestions by updating the current file/code
+                        if (activeFileId) {
+                          updateFile(activeFileId, suggestions);
+                          toast.success('AI suggestions applied successfully!');
+                        } else {
+                          // Create new file with suggestions if no active file
+                          const fileName = `improved-${Date.now()}.html`;
+                          const fileId = addFile(fileName, suggestions);
+                          setActiveFile(fileId);
+                          toast.success('New improved file created with AI suggestions!');
+                        }
                       }}
                     />
                   )}
