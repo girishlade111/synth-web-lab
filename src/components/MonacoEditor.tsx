@@ -11,6 +11,8 @@ interface MonacoEditorProps {
   theme?: 'vs-dark' | 'vs-light';
   readOnly?: boolean;
   className?: string;
+  isLiveWriting?: boolean;
+  liveContent?: string;
 }
 
 export const MonacoEditor: React.FC<MonacoEditorProps> = ({
@@ -19,7 +21,9 @@ export const MonacoEditor: React.FC<MonacoEditorProps> = ({
   language = 'html',
   theme = 'vs-dark',
   readOnly = false,
-  className = ''
+  className = '',
+  isLiveWriting = false,
+  liveContent = ''
 }) => {
   const editorRef = useRef<any>(null);
 
@@ -80,10 +84,12 @@ export const MonacoEditor: React.FC<MonacoEditorProps> = ({
   };
 
   const handleEditorChange = (value: string | undefined) => {
-    if (value !== undefined) {
+    if (value !== undefined && !isLiveWriting) {
       onChange(value);
     }
   };
+
+  const displayValue = isLiveWriting ? liveContent : value;
 
   const copyToClipboard = async () => {
     try {
@@ -172,11 +178,11 @@ export const MonacoEditor: React.FC<MonacoEditorProps> = ({
           height="100%"
           language={language}
           theme={theme === 'vs-dark' ? 'ai-ide-dark' : 'ai-ide-light'}
-          value={value}
+          value={displayValue}
           onChange={handleEditorChange}
           onMount={handleEditorDidMount}
           options={{
-            readOnly,
+            readOnly: readOnly || isLiveWriting,
             automaticLayout: true,
             scrollBeyondLastLine: false,
             wordWrap: 'on',

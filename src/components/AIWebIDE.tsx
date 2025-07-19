@@ -8,6 +8,7 @@ import { ExportUtils } from './ExportUtils';
 import { FileManager } from './FileManager';
 import { ConfirmationDialog } from './ConfirmationDialog';
 import { ThemeToggle } from './ThemeToggle';
+import { AISuggestionButton } from './AISuggestionButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -36,6 +37,8 @@ export const AIWebIDE: React.FC = () => {
     prompt: string;
     targetFileId?: string;
   } | null>(null);
+  const [isLiveWriting, setIsLiveWriting] = useState(false);
+  const [liveContent, setLiveContent] = useState('');
   
   const {
     versions,
@@ -95,7 +98,18 @@ USER REQUEST: ${prompt}
 Please provide the complete updated code that incorporates the requested changes while maintaining the existing functionality.`;
       }
       
-      const response = await aiService.generateCode(enhancedPrompt, model, setGenerationProgress);
+      // Enable live writing mode
+      setIsLiveWriting(true);
+      setLiveContent('');
+      
+      const response = await aiService.generateCode(
+        enhancedPrompt, 
+        model, 
+        setGenerationProgress,
+        (partialContent: string) => {
+          setLiveContent(partialContent);
+        }
+      );
       
       if (response.success && response.content) {
         // Store pending changes for user approval
@@ -105,12 +119,16 @@ Please provide the complete updated code that incorporates the requested changes
           targetFileId: targetFileId || (files.length > 0 ? getActiveFile()?.id : undefined)
         });
         
+        // Disable live writing mode
+        setIsLiveWriting(false);
         toast.success(`Code generated successfully with ${model.name}! Please review and approve changes.`);
       } else {
+        setIsLiveWriting(false);
         toast.error(`Generation failed: ${response.error}`);
         setGenerationProgress({ status: 'error', message: response.error });
       }
     } catch (error) {
+      setIsLiveWriting(false);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast.error(`Generation failed: ${errorMessage}`);
       setGenerationProgress({ status: 'error', message: errorMessage });
@@ -271,12 +289,25 @@ Please provide the complete updated code that incorporates the requested changes
           <div className="flex-1 m-4">
             <PanelGroup direction="horizontal" className="h-full">
               <Panel defaultSize={75} minSize={50}>
-                <TabsContent value="editor" className="h-full p-0 m-0">
+                <TabsContent value="editor" className="h-full p-0 m-0 relative">
                   <MonacoEditor
                     value={getCurrentCode()}
                     onChange={handleCodeChange}
                     language={getActiveFile()?.language || "html"}
+                    isLiveWriting={isLiveWriting}
+                    liveContent={liveContent}
                   />
+                  
+                  {/* AI Suggestion Button - Only show when not live writing and has code */}
+                  {!isLiveWriting && getCurrentCode().trim() && (
+                    <AISuggestionButton
+                      code={getCurrentCode()}
+                      onSuggestionApply={(suggestions) => {
+                        // You can implement auto-apply of suggestions here if needed
+                        console.log('AI Suggestions:', suggestions);
+                      }}
+                    />
+                  )}
                 </TabsContent>
 
                 <TabsContent value="preview" className="h-full p-0 m-0">

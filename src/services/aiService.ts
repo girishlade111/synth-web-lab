@@ -34,6 +34,7 @@ export interface GenerationProgress {
   status: 'idle' | 'generating' | 'complete' | 'error';
   progress?: number;
   message?: string;
+  partialContent?: string;
 }
 
 class AIService {
@@ -44,18 +45,19 @@ class AIService {
   async generateCode(
     prompt: string, 
     model: AIModel, 
-    onProgress?: (progress: GenerationProgress) => void
+    onProgress?: (progress: GenerationProgress) => void,
+    onLiveUpdate?: (partialContent: string) => void
   ): Promise<AIResponse> {
     onProgress?.({ status: 'generating', progress: 0, message: 'Initializing...' });
 
     try {
       switch (model.provider) {
         case 'gemini':
-          return await this.callGemini(prompt, model, onProgress);
+          return await this.callGemini(prompt, model, onProgress, onLiveUpdate);
         case 'deepseek':
-          return await this.callDeepSeek(prompt, model, onProgress);
+          return await this.callDeepSeek(prompt, model, onProgress, onLiveUpdate);
         case 'openrouter':
-          return await this.callOpenRouter(prompt, model, onProgress);
+          return await this.callOpenRouter(prompt, model, onProgress, onLiveUpdate);
         default:
           throw new Error(`Unsupported provider: ${model.provider}`);
       }
@@ -73,7 +75,8 @@ class AIService {
   private async callGemini(
     prompt: string, 
     model: AIModel, 
-    onProgress?: (progress: GenerationProgress) => void
+    onProgress?: (progress: GenerationProgress) => void,
+    onLiveUpdate?: (partialContent: string) => void
   ): Promise<AIResponse> {
     onProgress?.({ status: 'generating', progress: 25, message: 'Connecting to Gemini...' });
 
@@ -120,11 +123,18 @@ class AIService {
         throw new Error('No content received from Gemini API');
       }
 
+      const extractedCode = this.extractCodeFromResponse(content);
+      
+      // Simulate live writing effect
+      if (onLiveUpdate) {
+        await this.simulateLiveWriting(extractedCode, onLiveUpdate, onProgress);
+      }
+
       onProgress?.({ status: 'complete', progress: 100, message: 'Generation complete!' });
 
       return {
         success: true,
-        content: this.extractCodeFromResponse(content),
+        content: extractedCode,
         model: model.id
       };
     } catch (error) {
@@ -137,7 +147,8 @@ class AIService {
   private async callDeepSeek(
     prompt: string, 
     model: AIModel, 
-    onProgress?: (progress: GenerationProgress) => void
+    onProgress?: (progress: GenerationProgress) => void,
+    onLiveUpdate?: (partialContent: string) => void
   ): Promise<AIResponse> {
     onProgress?.({ status: 'generating', progress: 25, message: 'Connecting to DeepSeek...' });
 
@@ -179,11 +190,18 @@ class AIService {
       throw new Error('No content received from DeepSeek');
     }
 
+    const extractedCode = this.extractCodeFromResponse(content);
+    
+    // Simulate live writing effect
+    if (onLiveUpdate) {
+      await this.simulateLiveWriting(extractedCode, onLiveUpdate, onProgress);
+    }
+
     onProgress?.({ status: 'complete', progress: 100, message: 'Generation complete!' });
 
     return {
       success: true,
-      content: this.extractCodeFromResponse(content),
+      content: extractedCode,
       model: model.id
     };
   }
@@ -191,7 +209,8 @@ class AIService {
   private async callOpenRouter(
     prompt: string, 
     model: AIModel, 
-    onProgress?: (progress: GenerationProgress) => void
+    onProgress?: (progress: GenerationProgress) => void,
+    onLiveUpdate?: (partialContent: string) => void
   ): Promise<AIResponse> {
     onProgress?.({ status: 'generating', progress: 25, message: 'Connecting to OpenRouter...' });
 
@@ -239,11 +258,18 @@ class AIService {
       throw new Error('Empty response received from OpenRouter API');
     }
 
+    const extractedCode = this.extractCodeFromResponse(content);
+    
+    // Simulate live writing effect
+    if (onLiveUpdate) {
+      await this.simulateLiveWriting(extractedCode, onLiveUpdate, onProgress);
+    }
+
     onProgress?.({ status: 'complete', progress: 100, message: 'Generation complete!' });
 
     return {
       success: true,
-      content: this.extractCodeFromResponse(content),
+      content: extractedCode,
       model: model.id
     };
   }
@@ -281,6 +307,56 @@ Please provide the complete HTML file with embedded CSS and JavaScript, ready to
 
     // If no code blocks found, return the whole response
     return response;
+  }
+
+  private async simulateLiveWriting(
+    content: string, 
+    onLiveUpdate: (partialContent: string) => void,
+    onProgress?: (progress: GenerationProgress) => void
+  ): Promise<void> {
+    const words = content.split(' ');
+    let currentContent = '';
+    
+    for (let i = 0; i < words.length; i++) {
+      currentContent += (i > 0 ? ' ' : '') + words[i];
+      onLiveUpdate(currentContent);
+      
+      // Update progress
+      const progress = Math.floor((i / words.length) * 90); // Leave 10% for completion
+      onProgress?.({ 
+        status: 'generating', 
+        progress: 75 + (progress * 0.2), // Between 75% and 95%
+        message: 'Writing code...', 
+        partialContent: currentContent 
+      });
+      
+      // Add delay to simulate typing
+      await new Promise(resolve => setTimeout(resolve, 20 + Math.random() * 30));
+    }
+  }
+
+  async generateSuggestions(code: string): Promise<AIResponse> {
+    const prompt = `
+Analyze the following code and provide 3-5 specific suggestions to make it better, more responsive, and follow modern web development best practices:
+
+CODE:
+${code}
+
+Please provide suggestions in this format:
+1. [Category]: [Specific suggestion with brief explanation]
+2. [Category]: [Specific suggestion with brief explanation]
+etc.
+
+Focus on:
+- Performance optimizations
+- Responsive design improvements
+- Accessibility enhancements
+- Modern CSS/JS practices
+- User experience improvements
+    `.trim();
+
+    // Use Gemini for suggestions (fastest)
+    return await this.callGemini(prompt, { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'gemini' });
   }
 }
 
