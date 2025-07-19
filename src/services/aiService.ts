@@ -357,7 +357,29 @@ Provide a complete, single HTML file with embedded CSS and JavaScript that demon
 
   async generateSuggestions(code: string): Promise<AIResponse> {
     const prompt = `
-Analyze and improve the following code. Provide the complete enhanced version with these improvements:
+Analyze the following code and provide suggestions for improvement:
+
+CURRENT CODE:
+${code}
+
+ANALYSIS REQUIREMENTS:
+1. Identify areas for visual enhancement (colors, spacing, typography)
+2. Suggest responsiveness improvements
+3. Recommend performance optimizations
+4. Point out accessibility issues
+5. Suggest modern CSS/JS features to implement
+6. Recommend UX improvements
+
+OUTPUT: Provide detailed suggestions and recommendations (not code, just analysis and suggestions).
+    `.trim();
+
+    // Use Gemini for suggestions (fastest)
+    return await this.callGemini(prompt, { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'gemini' });
+  }
+
+  async generateEnhancedCode(code: string): Promise<AIResponse> {
+    const prompt = `
+Transform and improve the following code. Provide the complete enhanced version with these improvements:
 
 CURRENT CODE:
 ${code}
@@ -375,7 +397,7 @@ ENHANCEMENT REQUIREMENTS:
 OUTPUT: Provide the complete improved HTML file with embedded CSS and JavaScript. Make it significantly better than the original while maintaining all existing functionality.
     `.trim();
 
-    // Use Gemini for suggestions (fastest)
+    // Use Gemini for enhanced code generation
     return await this.callGemini(prompt, { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'gemini' });
   }
 }

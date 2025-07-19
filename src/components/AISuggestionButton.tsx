@@ -16,6 +16,7 @@ export const AISuggestionButton: React.FC<AISuggestionButtonProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [enhancedCode, setEnhancedCode] = useState<string>('');
 
   const generateSuggestions = async () => {
     if (!code || code.trim() === '') {
@@ -27,15 +28,23 @@ export const AISuggestionButton: React.FC<AISuggestionButtonProps> = ({
     setIsOpen(true);
 
     try {
-      const response = await aiService.generateSuggestions(code);
+      // Generate both suggestions and enhanced code in background
+      const [suggestionsResponse, enhancedResponse] = await Promise.all([
+        aiService.generateSuggestions(code),
+        aiService.generateEnhancedCode(code)
+      ]);
       
-      if (response.success && response.content) {
-        setSuggestions(response.content);
-        toast.success('AI suggestions generated successfully!');
+      if (suggestionsResponse.success && suggestionsResponse.content) {
+        setSuggestions(suggestionsResponse.content);
       } else {
-        toast.error(`Failed to generate suggestions: ${response.error}`);
         setSuggestions('Failed to generate suggestions. Please try again.');
       }
+
+      if (enhancedResponse.success && enhancedResponse.content) {
+        setEnhancedCode(enhancedResponse.content);
+      }
+
+      toast.success('AI analysis completed successfully!');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast.error(`Error: ${errorMessage}`);
@@ -47,7 +56,7 @@ export const AISuggestionButton: React.FC<AISuggestionButtonProps> = ({
 
   const closeSuggestions = () => {
     setIsOpen(false);
-    setSuggestions('');
+    // Don't clear suggestions/enhanced code - keep them for when reopened
   };
 
   return (
@@ -101,12 +110,21 @@ export const AISuggestionButton: React.FC<AISuggestionButtonProps> = ({
                 </div>
                 {onSuggestionApply && (
                   <Button
-                    onClick={() => onSuggestionApply(suggestions)}
+                    onClick={() => {
+                      // Apply enhanced code if available, otherwise suggestions
+                      const codeToApply = enhancedCode || suggestions;
+                      onSuggestionApply(codeToApply);
+                      // Clear state after applying
+                      setSuggestions('');
+                      setEnhancedCode('');
+                      setIsOpen(false);
+                    }}
                     variant="outline"
                     size="sm"
                     className="w-full mt-3"
+                    disabled={!suggestions && !enhancedCode}
                   >
-                    Apply Suggestions
+                    Apply {enhancedCode ? 'Enhanced Code' : 'Suggestions'}
                   </Button>
                 )}
               </div>

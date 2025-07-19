@@ -248,6 +248,16 @@ Please provide the complete updated code that incorporates the requested changes
       <div className="h-12 bg-card border-b px-4 flex items-center justify-between">
         <h1 className="text-lg font-bold">Girish IDE</h1>
         <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              // Clear all state for new project
+              window.location.reload();
+            }}
+          >
+            New Project
+          </Button>
           <ThemeToggle />
           <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-1" />
