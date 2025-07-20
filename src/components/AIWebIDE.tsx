@@ -259,7 +259,11 @@ Please provide the complete updated code that incorporates the requested changes
             New Project
           </Button>
           <ThemeToggle />
-          <Button variant="outline" size="sm">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => ExportUtils.exportAsZip(getCurrentCode(), 'website')}
+          >
             <Download className="h-4 w-4 mr-1" />
             Export
           </Button>
@@ -268,7 +272,7 @@ Please provide the complete updated code that incorporates the requested changes
 
       <div className="flex-1">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-          <TabsList className="grid w-full grid-cols-5 mx-4 mt-4">
+          <TabsList className="grid w-full grid-cols-3 mx-4 mt-4">
             <TabsTrigger value="editor" className="flex items-center gap-2">
               <Code2 className="h-4 w-4" />
               Editor
@@ -285,14 +289,6 @@ Please provide the complete updated code that incorporates the requested changes
                   {files.length}
                 </Badge>
               )}
-            </TabsTrigger>
-            <TabsTrigger value="prompt" className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              AI Assistant
-            </TabsTrigger>
-            <TabsTrigger value="export" className="flex items-center gap-2">
-              <Download className="h-4 w-4" />
-              Export
             </TabsTrigger>
           </TabsList>
 
@@ -347,28 +343,6 @@ Please provide the complete updated code that incorporates the requested changes
                   />
                 </TabsContent>
 
-                <TabsContent value="prompt" className="h-full p-0 m-0">
-                  <PromptPanel
-                    onGenerate={handleCodeGeneration}
-                    generationProgress={generationProgress}
-                    codeVersions={versions}
-                    onVersionSelect={handleVersionSelect}
-                    onVersionDelete={deleteVersion}
-                    selectedFile={getSelectedFile()}
-                    onFileUntag={() => setSelectedFile(null)}
-                    promptHistory={promptHistory}
-                  />
-                </TabsContent>
-
-                <TabsContent value="export" className="h-full p-0 m-0">
-                  <div className="p-4">
-                    <h2 className="text-lg font-semibold mb-4">Export</h2>
-                    <Button onClick={() => ExportUtils.exportAsZip(getCurrentCode(), 'website')}>
-                      <Download className="h-4 w-4 mr-2" />
-                      Export as ZIP
-                    </Button>
-                  </div>
-                </TabsContent>
               </Panel>
 
               <PanelResizeHandle className="w-2 bg-border hover:bg-primary/20 transition-colors" />
