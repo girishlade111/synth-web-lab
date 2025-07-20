@@ -7,6 +7,11 @@ export interface AIModel {
 
 export const AI_MODELS: AIModel[] = [
   {
+    id: 'gemini-2.5-pro',
+    name: 'Gemini 2.5 Pro',
+    provider: 'gemini'
+  },
+  {
     id: 'gemini-1.5-flash',
     name: 'Gemini 1.5 Flash',
     provider: 'gemini'
