@@ -20,7 +20,8 @@ import {
   Download,
   Minimize2,
   Maximize2,
-  FolderOpen
+  FolderOpen,
+  Plus
 } from 'lucide-react';
 import { aiService, AIModel, GenerationProgress } from '../services/aiService';
 import { useCodeVersions } from '../hooks/useCodeVersions';
@@ -192,55 +193,7 @@ Please provide the complete updated code that incorporates the requested changes
       return activeFile.content;
     }
     
-    return getCurrentVersion()?.code || `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Girish IDE</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .container {
-            background: white;
-            padding: 3rem;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            text-align: center;
-            max-width: 600px;
-        }
-        h1 {
-            color: #333;
-            margin-bottom: 1rem;
-            font-size: 2.5rem;
-        }
-        p {
-            color: #666;
-            font-size: 1.2rem;
-            line-height: 1.6;
-        }
-        .highlight {
-            color: #667eea;
-            font-weight: bold;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Welcome to <span class="highlight">Girish IDE</span></h1>
-        <p>Your AI-powered web development environment.</p>
-        <p>Start by describing what you want to build in the prompt panel!</p>
-    </div>
-</body>
-</html>`;
+    return getCurrentVersion()?.code || '';
   };
 
   return (
@@ -256,7 +209,7 @@ Please provide the complete updated code that incorporates the requested changes
               window.location.reload();
             }}
           >
-            New Project
+            <Plus className="h-4 w-4" />
           </Button>
           <ThemeToggle />
           <Button 
@@ -264,8 +217,7 @@ Please provide the complete updated code that incorporates the requested changes
             size="sm"
             onClick={() => ExportUtils.exportAsZip(getCurrentCode(), 'website')}
           >
-            <Download className="h-4 w-4 mr-1" />
-            Export
+            <Download className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -273,17 +225,14 @@ Please provide the complete updated code that incorporates the requested changes
       <div className="flex-1">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
           <TabsList className="grid w-full grid-cols-3 mx-4 mt-4">
-            <TabsTrigger value="editor" className="flex items-center gap-2">
+            <TabsTrigger value="editor" className="flex items-center justify-center">
               <Code2 className="h-4 w-4" />
-              Editor
             </TabsTrigger>
-            <TabsTrigger value="preview" className="flex items-center gap-2">
+            <TabsTrigger value="preview" className="flex items-center justify-center">
               <Eye className="h-4 w-4" />
-              Preview
             </TabsTrigger>
-            <TabsTrigger value="files" className="flex items-center gap-2">
+            <TabsTrigger value="files" className="flex items-center justify-center">
               <FolderOpen className="h-4 w-4" />
-              Files
               {files.length > 0 && (
                 <Badge variant="secondary" className="ml-1 text-xs">
                   {files.length}
