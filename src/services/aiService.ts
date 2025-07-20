@@ -330,8 +330,26 @@ Provide a complete, single HTML file with embedded CSS and JavaScript that demon
       return codeMatch[1];
     }
 
-    // If no code blocks found, return the whole response
-    return response;
+    // Look for <!DOCTYPE html> or <html> tags to extract HTML content
+    const docTypeMatch = response.match(/(<!DOCTYPE[\s\S]*?<\/html>)/i);
+    if (docTypeMatch) {
+      return docTypeMatch[1];
+    }
+
+    const htmlTagMatch = response.match(/(<html[\s\S]*?<\/html>)/i);
+    if (htmlTagMatch) {
+      return htmlTagMatch[1];
+    }
+
+    // Look for complete HTML structure without DOCTYPE
+    const bodyMatch = response.match(/(<html[\s\S]*)/i);
+    if (bodyMatch) {
+      return bodyMatch[1];
+    }
+
+    // If no HTML found, return empty string instead of full response
+    console.warn('No valid HTML code found in AI response');
+    return '';
   }
 
   private async simulateLiveWriting(
