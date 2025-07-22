@@ -101,7 +101,7 @@ class AIService {
             temperature: 0.7,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 300000,
+            maxOutputTokens: 1000000,
           }
         })
       });
@@ -178,7 +178,7 @@ class AIService {
           }
         ],
         temperature: 0.7,
-        max_tokens: 300000
+        max_tokens: 1000000
       })
     });
 
@@ -242,7 +242,7 @@ class AIService {
           }
         ],
         temperature: 0.7,
-        max_tokens: 300000,
+        max_tokens: 1000000,
         stream: true
       })
     });
