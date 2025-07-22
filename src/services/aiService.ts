@@ -101,7 +101,7 @@ class AIService {
             temperature: 0.7,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 200000,
+            maxOutputTokens: 300000,
           }
         })
       });
@@ -178,7 +178,7 @@ class AIService {
           }
         ],
         temperature: 0.7,
-        max_tokens: 200000
+        max_tokens: 300000
       })
     });
 
@@ -242,22 +242,63 @@ class AIService {
           }
         ],
         temperature: 0.7,
-        max_tokens: 200000,
-        stream: false
+        max_tokens: 300000,
+        stream: true
       })
     });
 
     onProgress?.({ status: 'generating', progress: 75, message: 'Processing response...' });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`OpenRouter API error: ${response.statusText} - ${errorData.error?.message || 'Unknown error'}`);
+      const errorData = await response.text();
+      throw new Error(`OpenRouter API error: ${response.statusText} - ${errorData || 'Unknown error'}`);
     }
 
-    const data = await response.json();
-    
-    // Check for reasoning field first (for reasoning models)
-    let content = data.choices?.[0]?.message?.reasoning || data.choices?.[0]?.message?.content;
+    // Handle streaming response
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('Stream reader not available');
+    }
+
+    let content = '';
+    const decoder = new TextDecoder();
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+
+            try {
+              const parsed = JSON.parse(data);
+              const delta = parsed.choices?.[0]?.delta?.content;
+              if (delta) {
+                content += delta;
+                // Provide live updates during streaming
+                if (onLiveUpdate) {
+                  const extractedCode = this.extractCodeFromResponse(content);
+                  if (extractedCode) {
+                    onLiveUpdate(extractedCode);
+                  }
+                }
+              }
+            } catch (e) {
+              // Skip invalid JSON lines
+              continue;
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
 
     if (!content || content.trim() === '') {
       throw new Error('Empty response received from OpenRouter API');
