@@ -437,8 +437,8 @@ ANALYSIS REQUIREMENTS:
 OUTPUT: Provide detailed suggestions and recommendations (not code, just analysis and suggestions).
     `.trim();
 
-    // Use Gemini for suggestions (fastest)
-    return await this.callGemini(prompt, { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'gemini' });
+    // Use Gemini 2.5 Pro for suggestions (better quality)
+    return await this.callGemini(prompt, { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'gemini' });
   }
 
   async generateEnhancedCode(code: string): Promise<AIResponse> {
@@ -461,8 +461,8 @@ ENHANCEMENT REQUIREMENTS:
 OUTPUT: Provide the complete improved HTML file with embedded CSS and JavaScript. Make it significantly better than the original while maintaining all existing functionality.
     `.trim();
 
-    // Use Gemini for enhanced code generation
-    return await this.callGemini(prompt, { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'gemini' });
+    // Use Gemini 2.5 Pro for enhanced code generation
+    return await this.callGemini(prompt, { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'gemini' });
   }
 }
 
