@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
+import { Link } from 'react-router-dom';
 import { MonacoEditor } from './MonacoEditor';
 import { LivePreview } from './LivePreview';
 import { PromptPanel } from './PromptPanel';
@@ -21,7 +22,8 @@ import {
   Minimize2,
   Maximize2,
   FolderOpen,
-  Plus
+  Plus,
+  Info
 } from 'lucide-react';
 import { aiService, AIModel, GenerationProgress } from '../services/aiService';
 import { useCodeVersions } from '../hooks/useCodeVersions';
@@ -199,7 +201,17 @@ Please provide the complete updated code that incorporates the requested changes
   return (
     <div className="h-screen bg-background flex flex-col">
       <div className="h-12 bg-card border-b px-4 flex items-center justify-between">
-        <h1 className="text-lg font-bold">Girish IDE</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-lg font-bold">Girish IDE</h1>
+          <nav className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/about" className="flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                About Us
+              </Link>
+            </Button>
+          </nav>
+        </div>
         <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
