@@ -130,9 +130,9 @@ class AIService {
 
       const extractedCode = this.extractCodeFromResponse(content);
       
-      // Simulate live writing effect
+      // Instantly display the generated code
       if (onLiveUpdate) {
-        await this.simulateLiveWriting(extractedCode, onLiveUpdate, onProgress);
+        onLiveUpdate(extractedCode);
       }
 
       onProgress?.({ status: 'complete', progress: 100, message: 'Generation complete!' });
@@ -197,9 +197,9 @@ class AIService {
 
     const extractedCode = this.extractCodeFromResponse(content);
     
-    // Simulate live writing effect
+    // Instantly display the generated code
     if (onLiveUpdate) {
-      await this.simulateLiveWriting(extractedCode, onLiveUpdate, onProgress);
+      onLiveUpdate(extractedCode);
     }
 
     onProgress?.({ status: 'complete', progress: 100, message: 'Generation complete!' });
@@ -306,9 +306,9 @@ class AIService {
 
     const extractedCode = this.extractCodeFromResponse(content);
     
-    // Simulate live writing effect
+    // Instantly display the generated code  
     if (onLiveUpdate) {
-      await this.simulateLiveWriting(extractedCode, onLiveUpdate, onProgress);
+      onLiveUpdate(extractedCode);
     }
 
     onProgress?.({ status: 'complete', progress: 100, message: 'Generation complete!' });
