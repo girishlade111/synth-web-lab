@@ -1,73 +1,95 @@
-# Welcome to your Lovable project
+# Synth Web Lab
 
-## Project info
+An AI-powered web IDE that runs entirely in the browser: describe what you want, and it generates working HTML/CSS/JS with a live preview, Monaco code editor, file manager, console, terminal, and one-click export. Originally generated with Lovable.
 
-**URL**: https://lovable.dev/projects/34c6618c-5ba0-42e2-a38e-8678db85fe65
+## What it does
 
-## How can I edit this code?
+Synth Web Lab is a client-side "AI code lab" — a mini Lovable/Bolt-style studio:
 
-There are several ways of editing your application.
+- Type a prompt → the AI service generates web code (HTML/CSS/JS) with streaming progress
+- Edit the generated code in a full Monaco editor (VS Code's editor in the browser)
+- See changes instantly in a sandboxed live preview pane
+- Manage multiple files with a file explorer, create/rename/delete files
+- Built-in console and terminal panels for output and commands
+- Version history of generated code (code versions hook)
+- Export your project (download the files) via the export utilities
+- Dark/light theme toggle
 
-**Use Lovable**
+## Features
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/34c6618c-5ba0-42e2-a38e-8678db85fe65) and start prompting.
+- AI code generation with progress streaming (`aiService`)
+- Monaco editor with syntax highlighting and IntelliSense-style completions
+- Live preview rendered in an isolated iframe
+- Resizable panel layout (editor / preview / console / prompt)
+- File manager with multi-file project support
+- Code version history — restore earlier generations
+- Console + terminal panels for runtime output
+- Export project files to disk
+- About and 404 pages; react-router navigation
+- shadcn/ui component library + Tailwind styling
 
-Changes made via Lovable will be committed automatically to this repo.
+## Tech stack
 
-**Use your preferred IDE**
+- Vite + React 18 + TypeScript
+- Monaco Editor (`@monaco-editor/react`)
+- Tailwind CSS + shadcn/ui (Radix UI primitives)
+- react-router-dom, react-resizable-panels, TanStack Query
+- Lucide icons, Framer Motion
+- npm
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Quick start
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+npm install
+npm run dev      # http://localhost:8080
 ```
 
-**Edit a file directly in GitHub**
+Production build:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+npm run build     # emits ./dist
+npm run preview   # serve the production build locally
+```
 
-**Use GitHub Codespaces**
+## Project structure
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```
+src/
+  App.tsx                 # router (/, /about, 404)
+  pages/Index.tsx         # main IDE page
+  pages/AboutUs.tsx
+  components/
+    AIWebIDE.tsx          # main IDE shell (panels, tabs)
+    MonacoEditor.tsx      # code editor wrapper
+    LivePreview.tsx       # sandboxed iframe preview
+    PromptPanel.tsx       # AI prompt input
+    FileManager.tsx       # file explorer
+    Console.tsx / Terminal.tsx
+    ExportUtils.tsx       # project export
+    AISuggestionButton.tsx, ThemeToggle.tsx, ...
+    ui/                   # shadcn/ui components
+  services/aiService.ts   # AI generation service
+  hooks/                  # useCodeVersions, useFileManager, ...
+public/                   # static assets
+```
 
-## What technologies are used for this project?
+## Environment variables
 
-This project is built with:
+The AI generation features call an AI backend — check `src/services/aiService.ts` for the API key / endpoint it expects (e.g. an API key stored in local storage or a `.env` variable). The editor/preview itself works fully offline with no keys.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Deployment
 
-## How can I deploy this project?
+Fully static — `dist/` can be served anywhere:
 
-Simply open [Lovable](https://lovable.dev/projects/34c6618c-5ba0-42e2-a38e-8678db85fe65) and click on Share -> Publish.
+- GitHub Pages: build with `vite.config.ts` `base: '/synth-web-lab/'`, then push `dist/` to the `gh-pages` branch → `https://girishlade111.github.io/synth-web-lab/`
+- Vercel / Netlify / Cloudflare Pages: connect the repo (`npm run build`, publish `dist`)
 
-## Can I connect a custom domain to my Lovable project?
+Note: `vite.config.ts` sets `base: '/synth-web-lab/'` and the router uses `import.meta.env.BASE_URL` as basename so the app works under the GitHub Pages subpath. Remove/revert both when deploying to a root domain.
 
-Yes, you can!
+## License
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+MIT — free to use and adapt.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+---
+
+Built by Girish Lade · [ladestack.in](https://ladestack.in)

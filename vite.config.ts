@@ -5,6 +5,8 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // '/synth-web-lab/' for GitHub Pages subpath; use '/' for root-domain deploys
+  base: '/synth-web-lab/',
   server: {
     host: "::",
     port: 8080,
